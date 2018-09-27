@@ -456,44 +456,6 @@ def update_Timeline():	# Invoque get_empty_hour_list()
 		i += 1
 		update_Time_Stamp()
 
-
-"""===============STATISTIQUES==========="""
-# Met a jour la liste des activités/heures visuelle STATISTIQUE
-def update_list_stat(day_list, file, save_list, hour):
-
-	Hour_list_stat[hour].add_cig( int( save_list[1] ) )
-	Hour_list_stat[hour].add_prog( int( save_list[2] ) )
-	Hour_list_stat[hour].add_multimedia( int( save_list[3] ) )
-	Hour_list_stat[hour].add_pote( int( save_list[4] ) )
-	Hour_list_stat[hour].add_crypto( int( save_list[5] ) )
-	Hour_list_stat[hour].add_depense( int( save_list[6] ) )
-	Hour_list_stat[hour].add_wow(int( save_list[7]))
-	Hour_list_stat[hour].add_taff(int( save_list[8]))
-
-def get_all_save():
-	"""
-	1) Initialisation
-		- day_list stocke les données de tous les
-		  jours passés organisés par [jour][Heure]
-		  	- Init day_list ajout à day_list 24 sous
-		  	  tableau de 6 attributs vides pour chaque
-			  save_file lue
-		- save_file stocke la liste des fichiers save passés
-		- save_note stocke la liste des fichiers note passés
-	2) listage fichier présent
-		- Remplissage d'Hour_list avec 24 heures
-		- os.listdir('.')
-			- Trie save_note et save_file
-	3) Lecture fichiers antécédents
-		- Ouverture des fichiers avec save_file
-		- Lecture des fichier
-			- Découpage des lignes de données
-			- Stockage dans day_list[save_file][Hour]
-			  sous la forme [5, 1,0,20,10,30,20]
-		- Créer un fichier _yday_save_stats.txt
-		  et y stocke les données des jours précédents
-	"""
-	
 	#===========================INITIALISATION================================
 
 	# Contient une journée
