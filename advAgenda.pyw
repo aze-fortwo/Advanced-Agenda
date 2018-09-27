@@ -8,8 +8,8 @@ import os
 
 global day, activity_list, note_list
 
-# Timeline visuelle
-def make_TimeLine(fen):	# Invoque update_Time_Stamp() & set_save_file
+# Visual Timeline
+def make_TimeLine(fen):
 	global Timeline, Time_stamp
 	"""
 		Timeline: 	Canvas de représentation visuelle
@@ -59,6 +59,7 @@ def make_TimeLine(fen):	# Invoque update_Time_Stamp() & set_save_file
 	update_Time_Stamp()
 
 	set_save_file()
+# Update the orange time cursor
 def update_Time_Stamp():
 	"""
 		current_time:	Heure actuelle
@@ -67,6 +68,8 @@ def update_Time_Stamp():
 		Time_stampX:	Position du Time_stamp
 
 		Calcule le nombre de seconde écoulées depuis minuit
+		Calcule la position du curseur en fonction de l'heure
+		Se relance toutes les 10000000 ms
 	"""
 	global Timeline, Time_stamp, Time_stampX
 	current_time = time.strftime('%H:%M:%S')
@@ -87,7 +90,7 @@ def update_Time_Stamp():
 	Time_stampX += 1
 	fen.after(10000000,update_Time_Stamp)
 
-
+# add_activity Button function & shortcut
 def next_hour():
 	global H, act_window
 	act_window.destroy()
@@ -98,33 +101,49 @@ def previous_hour():
 	act_window.destroy()
 	H -= 1
 	add_activities()
-# tabulation dans note
 def space_jump(eventorigin):
 	global note
 	E = '     '
 	note.insert('insert',E)
-# Ouvre un menu pour gérer l'heure
 
-
-def add_activities():	# Peut invoque save_manage_list()	# A RENDRE MODULABLE
+# New menu for add activity
+def add_activities():
 	global H, day, Entry_list, note, activity_list, note_list, act_window
+	"""
+		act_window:		Window for activity modification
+		panneau:		Stock Entry and Label
+		function_list:	Stock hour H activities
+		Entry_list:		Stock Entry for save_manage_hour()
+		note_list:		Sock  notes
+		Note:			Get houre note H
+		
+		Create a new window
+		Put a frame on the left side of it
+
+		while activities left:
+			(1)	Write activity name in the frame
+			(2)	Put an entry next to the act_name
+			(3)	Add this entry to Entry_list
+			(4) Insert the activity value in the
+				corresponding entry
+			(5) Grid the Entry
+
+		Create save, quit, next, previous, clear button and
+			grid them below the last Entry
+
+	"""
 	act_window = tk.Toplevel()
 	act_window.title('Heure: {}'.format(H))
 	panneau = tk.Frame(act_window, width=165, height = 195).grid(row=0,column=0,columnspan=2,rowspan=7)
 	act_window.resizable(False, False)
 	
 	function_list =[]
+	Entry_list = []
+
 	i = 1
 	while i < len(activity_list)+1:
 		function_list.append(day[H][i])
 		i += 1
-	Entry_list = list()
-	
-	screen_width = act_window.winfo_screenwidth()
-	screen_height = act_window.winfo_screenheight()
-
-	x = (screen_width/2)-(863/2)
-	y = (screen_height/2)-(50/2)
 
 	note = tk.Text(act_window, width=25, height=18, wrap=tk.WORD)
 	note.bind("<KeyPress-Tab>", space_jump)
@@ -135,12 +154,12 @@ def add_activities():	# Peut invoque save_manage_list()	# A RENDRE MODULABLE
 	i = 0
 	rowi=0
 	while i < len(activity_list):
-		value = str(function_list[i])
+		value = str(function_list[i]) 						#(1)
 		tk.Label(act_window,parent = panneau, text=activity_list[i], justify=tk.LEFT).grid(row=rowi,column=0, sticky=tk.N)
-		En = tk.Entry(act_window,parent = panneau, width=5)
-		Entry_list.append(En)
-		Entry_list[i].insert(0,value)
-		Entry_list[i].grid(row=rowi,column=1, sticky=tk.N)
+		En = tk.Entry(act_window,parent = panneau, width=5) #(2)
+		Entry_list.append(En) 								#(3)
+		Entry_list[i].insert(0,value) 						#(4)
+		Entry_list[i].grid(row=rowi,column=1, sticky=tk.N)  #(5)
 		rowi = i+1
 		i += 1
 	
@@ -150,9 +169,16 @@ def add_activities():	# Peut invoque save_manage_list()	# A RENDRE MODULABLE
 	tk.Button(act_window, text='Clear', command = clear_rect).grid(row=len(activity_list)+1,column=2,sticky=tk.S+tk.W+tk.E)
 	tk.Button(act_window, text='<', command =previous_hour ).grid(row=len(activity_list)+1, column=3, sticky=tk.S+tk.E+tk.W)
 	tk.Button(act_window, text='>', command =next_hour ).grid(row=len(activity_list)+1, column=4, sticky=tk.S+tk.W+tk.E)
-# Sauvegarde les modification faites dans add_activities
-def save_manage_list():	# Invoque save_hour_note()
+# Save add_activities modifications
+def save_manage_list():
 	global H, Entry_list, Timeline, day
+	"""
+		While entry left:
+			Update day[Hour] with the Entry value
+		Reset the Hour on graphical timeline for re-drawing
+		save_hour_note():	Write note in note file
+		save_hour_list():	Write save in save file
+	"""
 	
 	i = 0
 	while i < len(Entry_list):
@@ -165,18 +191,29 @@ def save_manage_list():	# Invoque save_hour_note()
 
 	save_hour_note()
 	save_Hour_list()
-# Sauvegarde et écrit dans le fichier save_note
+# Save note in add_activities()
 def save_hour_note():
 	global H, note, list_text
+	"""
+		Create save_note_file
+		Get the content of the note widget
+			in add_activities()
+		Add it to 'Note' letter by letter
+		Get previous note if so
+		Make it a list
+		Add to the list at the indice H 
+			the new note
+		Print it to save_note_file
+	"""
 
-	# Vérifie la présence de Save_note.txt
-	local = time.localtime() # Création du fichier Save
+	local = time.localtime() 
 	filename = make_note_save_file()
 	
 
-	infile = io.open(filename,encoding='utf-8',mode ='r+') # Ouvre le fichier en lecture écriture
+	infile = io.open(filename,encoding='utf-8',mode ='r+') 
 	oldNote = note_list[H]
-	Note = str(note.get(0.0, index2=tk.END)) # Récupère le contenu du widget text
+	Note = str(note.get(0.0, index2=tk.END))
+	
 	i = 0
 	replace = ''
 	while i < len(Note):
@@ -185,11 +222,11 @@ def save_hour_note():
 		i += 1
 
 	Note = replace
-	text = infile.read()	# Récupère toute les nptes de la journée
-	list_text = text.split('¤') # Sépare les heures des notes et des retours chariots
+	text = infile.read()	
+	list_text = text.split('¤')
 	infile.close()
 
-	infile = io.open(filename,encoding='utf-8',mode ='r+') # Ouvre le fichier en lecture écriture
+	infile = io.open(filename,encoding='utf-8',mode ='r+') 
 
 	old = infile.read()
 	infile.close()
@@ -203,10 +240,9 @@ def save_hour_note():
 	infile = io.open(filename, encoding='utf-8', mode='w')
 	Note = str('¤'.join(old))
 	infile.write(Note)
-
-	#infile.write(Note)
-
 	infile.close()
+
+
 
 # Retourne un fichier.txt pour sauvegarder les activités
 def make_save_file():
@@ -407,7 +443,7 @@ def update_Timeline():	# Invoque get_empty_hour_list()
 	'pos1 += pos' permet d'avancer le début du prochain rectangle d'activité à la fin du précédent
 	"""
 
-	color = ['red', 'light blue', 'yellow', 'light green','purple','blue']
+	color = ['red','light blue',  'yellow', 'light green','purple','blue']
 
 	i = 0
 	while i < 24:
@@ -456,6 +492,44 @@ def update_Timeline():	# Invoque get_empty_hour_list()
 		i += 1
 		update_Time_Stamp()
 
+
+"""===============STATISTIQUES==========="""
+# Met a jour la liste des activités/heures visuelle STATISTIQUE
+def update_list_stat(day_list, file, save_list, hour):
+
+	Hour_list_stat[hour].add_cig( int( save_list[1] ) )
+	Hour_list_stat[hour].add_prog( int( save_list[2] ) )
+	Hour_list_stat[hour].add_multimedia( int( save_list[3] ) )
+	Hour_list_stat[hour].add_pote( int( save_list[4] ) )
+	Hour_list_stat[hour].add_crypto( int( save_list[5] ) )
+	Hour_list_stat[hour].add_depense( int( save_list[6] ) )
+	Hour_list_stat[hour].add_wow(int( save_list[7]))
+	Hour_list_stat[hour].add_taff(int( save_list[8]))
+
+def get_all_save():
+	"""
+	1) Initialisation
+		- day_list stocke les données de tous les
+		  jours passés organisés par [jour][Heure]
+		  	- Init day_list ajout à day_list 24 sous
+		  	  tableau de 6 attributs vides pour chaque
+			  save_file lue
+		- save_file stocke la liste des fichiers save passés
+		- save_note stocke la liste des fichiers note passés
+	2) listage fichier présent
+		- Remplissage d'Hour_list avec 24 heures
+		- os.listdir('.')
+			- Trie save_note et save_file
+	3) Lecture fichiers antécédents
+		- Ouverture des fichiers avec save_file
+		- Lecture des fichier
+			- Découpage des lignes de données
+			- Stockage dans day_list[save_file][Hour]
+			  sous la forme [5, 1,0,20,10,30,20]
+		- Créer un fichier _yday_save_stats.txt
+		  et y stocke les données des jours précédents
+	"""
+	
 	#===========================INITIALISATION================================
 
 	# Contient une journée
