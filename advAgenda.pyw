@@ -407,7 +407,7 @@ def update_Timeline():	# Invoque get_empty_hour_list()
 	'pos1 += pos' permet d'avancer le début du prochain rectangle d'activité à la fin du précédent
 	"""
 
-	color = ['light blue', 'red', 'yellow', 'light green','purple','blue']
+	color = ['red', 'light blue', 'yellow', 'light green','purple','blue']
 
 	i = 0
 	while i < 24:
