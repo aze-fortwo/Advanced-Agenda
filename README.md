@@ -1,7 +1,7 @@
 # Advanced-Agenda
 A timeline visualisation of your day with python & Tkinter
 
-Progression from 26/09/18 to 27/09/18:
+Progression from 26/08/18 to 27/09/18:
 1) Detect bug when manage save with multiple activities 
 2) Save for note 
 3) Ajust note with button in manage hour 
