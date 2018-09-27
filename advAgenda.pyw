@@ -12,19 +12,19 @@ global day, activity_list, note_list
 def make_TimeLine(fen):
 	global Timeline, Time_stamp
 	"""
-		Timeline: 	Canvas de représentation visuelle
-		Time_stamp:	Ligne représentant l'heure actuelle
+		Timeline: 	Visual Timeline
+		Time_stamp:	Actual hour orange line
 
-		i: 	Compteur
-		x:	Position qui avance de 36 pxl pour marquer chaque heure
+		i: 	Counter
+		x:	Position wich move right of 36 pxls for every hour
 		
-		Pour dessiner les 24 heures de la journée:
-			(1):	Ecrit les heures en haut de la Timeline
-			(2):	Dessine une longue ligne verticale marquant les heures
-			(3)(4):	Dessine une petite ligne pour marquer les quarts d'heure
-			(5):	Dessine un rectangle gris pour représenter les heures
-			(6):	Dessine une moyenne ligne pour marquer les demies heures
-			(7):	Ecrit les demies heures
+		PDraw the 24 hours of the day:
+			(1):	Write hours on top of timeline
+			(2):	Draw a long vertical line for marking the hour
+			(3)(4):	Draw a little vertical line for marking the 1/4 hour
+			(5):	Draw a medium vertical line  for marking the half hour
+			(6):	Draw a grey rectangle for representing the hour
+			(7):	Write '30' above every half hour
 
 		update_Time_Stamp():	MaJ du curseur orange d'heure
 		set_save_file():		Créer/Charge le fichier save
@@ -45,9 +45,9 @@ def make_TimeLine(fen):
 		Timeline.create_line(x,16,x,9, fill='white', tag='Hour_line')	# (2)
 		Timeline.create_line(x+8,13,x+8,16, fill='white')				# (3)
 		Timeline.create_line(x+24,13,x+24,16, fill='white')				# (4)
+		Timeline.create_line(x+16,10,x+16,16, fill='white')				# (5)
 		Timeline.create_rectangle(x,16,x+36,60,state='normal',\
-								outline='white', tag='rect')			# (5)
-		Timeline.create_line(x+16,10,x+16,16, fill='white')				# (6)
+								outline='white', tag='rect')			# (6)
 		Timeline.create_text(x+16,9, text='30', font=("Times",'6', 'bold'),tag='hour') # (7)
 		
 		i += 1
