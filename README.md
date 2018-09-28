@@ -19,7 +19,7 @@ Progression from 26/08/18 to 27/09/18:
 15) Add note symbol on hour with note   #TODO
 16) Add Fac to activities 
 17) Create a double list for Hour in day and replace the whole class by the list
-
+18) Add hour data if mouse_over hour rect
 
 
 
