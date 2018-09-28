@@ -110,17 +110,22 @@ def space_jump(eventorigin):
 def add_activities():
 	global H, day, Entry_list, note, activity_list, note_list, act_window
 	"""
-		act_window:		Window for activity modification
-		panneau:		Stock Entry and Label
-		function_list:	Stock hour H activities
-		Entry_list:		Stock Entry for save_manage_hour()
-		note_list:		Sock  notes
-		Note:			Get houre note H
-		
-		Create a new window
-		Put a frame on the left side of it
+	(1)	act_window:		Window for activity modification
+	(2)	panneau:		Stock Entry and Label
+	(3)	function_list:	Stock hour H activities
+	(4)	Entry_list:		Stock Entry for save_manage_hour()
+	Create a new window
+	Put a frame on the left side of it
 
-		while activities left:
+		
+			note_list:		Sock  notes
+			Note:			Get houre note H
+	(5)(6) Make note widget with binding
+	(7) If note is not empty, make it appear on the note widget
+	(8)	Get day data in function_list
+
+
+	(9)	while activities left:
 			(1)	Write activity name in the frame
 			(2)	Put an entry next to the act_name
 			(3)	Add this entry to Entry_list
@@ -128,32 +133,33 @@ def add_activities():
 				corresponding entry
 			(5) Grid the Entry
 
-		Create save, quit, next, previous, clear button and
+	(10)	Create save, quit, next, previous, clear button and
 			grid them below the last Entry
 
 	"""
-	act_window = tk.Toplevel()
-	act_window.title('Heure: {}'.format(H))
+	act_window = tk.Toplevel()		#(1)
+	act_window.title('Heure: {}'.format(H))		#(2)
 	panneau = tk.Frame(act_window, width=165, height = 195).grid(row=0,column=0,columnspan=2,rowspan=7)
 	act_window.resizable(False, False)
 	
-	function_list =[]
-	Entry_list = []
+	function_list =[]	#(3)
+	Entry_list = []		#(4)
+
+	note = tk.Text(act_window, width=25, height=18, wrap=tk.WORD) #(5)
+	note.bind("<KeyPress-Tab>", space_jump)	#(6)
+	Note = note_list[H]		
+	if len(Note) >= 1:		#(7)
+		note.insert('insert',Note)
 
 	i = 1
-	while i < len(activity_list)+1:
+	while i < len(activity_list)+1:		#(8)
 		function_list.append(day[H][i])
 		i += 1
 
-	note = tk.Text(act_window, width=25, height=18, wrap=tk.WORD)
-	note.bind("<KeyPress-Tab>", space_jump)
-	Note = note_list[H]
-	if len(Note) >= 1:
-		note.insert('insert',Note)
 
 	i = 0
 	rowi=0
-	while i < len(activity_list):
+	while i < len(activity_list):		#(9)
 		value = str(function_list[i]) 						#(1)
 		tk.Label(act_window,parent = panneau, text=activity_list[i], justify=tk.LEFT).grid(row=rowi,column=0, sticky=tk.N)
 		En = tk.Entry(act_window,parent = panneau, width=5) #(2)
@@ -163,6 +169,7 @@ def add_activities():
 		rowi = i+1
 		i += 1
 	
+	#(10)
 	note.grid(row=0, column=2,rowspan = len(activity_list),columnspan=3, sticky=tk.E)
 	tk.Button(act_window, text='Save', command= save_manage_list, highlightcolor='grey').grid(row=len(activity_list)+1,column=0,sticky=tk.S+tk.W+tk.E)
 	tk.Button(act_window, text = 'Quit', command=act_window.destroy).grid(row=len(activity_list)+1,column=1,sticky=tk.S+tk.W+tk.E)
@@ -173,128 +180,124 @@ def add_activities():
 def save_manage_list():
 	global H, Entry_list, Timeline, day
 	"""
-		While entry left:
+	(1)	While there is activity:
 			Update day[Hour] with the Entry value
-		Reset the Hour on graphical timeline for re-drawing
-		save_hour_note():	Write note in note file
-		save_hour_list():	Write save in save file
+		
+	(2)	Reset the Hour on graphical timeline for re-drawing
+		
+	(3)	save_hour_note():	Write note in note file
+	(4)	save_hour_list():	Write save in save file
 	"""
-	
 	i = 0
-	while i < len(Entry_list):
+	while i < len(activity_list):	#(1)
 		day[H][i+1] = int(Entry_list[i].get())
 		i += 1
 
 	x = int(H * 36)
 	Timeline.create_rectangle(x,16,x+36,60,state='normal',\
-				outline='white', fill='grey', tag='del_rect')
+				outline='white', fill='grey', tag='del_rect') #(2)
 
-	save_hour_note()
-	save_Hour_list()
+	save_hour_note()	#(3)
+	save_Hour_list()	#(4)
 # Save note in add_activities()
 def save_hour_note():
-	global H, note, list_text
+	global H, note, oldNote_list
 	"""
-		Create save_note_file
-		Get the content of the note widget
-			in add_activities()
-		Add it to 'Note' letter by letter
-		Get previous note if so
-		Make it a list
-		Add to the list at the indice H 
-			the new note
-		Print it to save_note_file
+	(1)	Create note_save_file
+	(2)	Open note_save_file
+	(3) Open note_save_file in read mode
+	(4)	Get the content of the note widget
+		in add_activities() -> newNote
+	(5)	Get note_save_file content -> oldNote_list 
+	(6)	Find the index H in oldNote_list 
+		add newNote after index H
+	(7) Make newNote_list for note_save_file
+	(8)	Erase old note_save_file and write newNote_list in it
 	"""
 
-	local = time.localtime() 
-	filename = make_note_save_file()
-	
+	filename = make_note_save_file()		#(1)
+	newNote = str(note.get(0.0, index2=tk.END))	#(2)
+	infile = io.open(filename, encoding='utf-8', mode='r')	#(3)
+	text = infile.read()		
+	oldNote_list = text.split('¤')	#(4)
 
-	infile = io.open(filename,encoding='utf-8',mode ='r+') 
-	oldNote = note_list[H]
-	Note = str(note.get(0.0, index2=tk.END))
-	
-	i = 0
-	replace = ''
-	while i < len(Note):
-		if Note[i] != '\n':
-			replace += Note[i]
-		i += 1
-
-	Note = replace
-	text = infile.read()	
-	list_text = text.split('¤')
-	infile.close()
-
-	infile = io.open(filename,encoding='utf-8',mode ='r+') 
-
-	old = infile.read()
-	infile.close()
-	old = old.split('¤')
 	i = 1
-	while i < len(old):
-		if int(old[i]) == H:
-			old[i+1] = Note
+	while i < len(oldNote_list):	#(5)
+		if int(oldNote_list[i]) == H:
+			oldNote_list[i+1] = newNote
 			break
 		i += 2
-	infile = io.open(filename, encoding='utf-8', mode='w')
-	Note = str('¤'.join(old))
-	infile.write(Note)
+	
+	infile.close()
+
+	infile = io.open(filename, encoding='utf-8', mode='w')	#(6)
+	
+	newNote_list = str('¤'.join(oldNote_list))	#(7)
+	infile.write(newNote_list)	#(8)
 	infile.close()
 
 
 
-# Retourne un fichier.txt pour sauvegarder les activités
+# Return the save_file name of the day
 def make_save_file():
-	
-	# Création du fichier Save
 	local = time.localtime()
 
 	text = ''
 	FileName = str(local.tm_yday) + '.txt'
 
-	return str(FileName)
-# Retourne un fichier.txt pour sauvegarder les activités
+	return FileName
+# Return th note_save_file name of the day
 def make_note_save_file():
 	
-	# Création du fichier Save
 	local = time.localtime()
 
 	text = ''
-	FileName = str(local.tm_yday) + '_Note.txt'
+	noteFile = str(local.tm_yday) + '_Note.txt'
 
-	return str(FileName)
-# Créer ou charge le fichier save
-def set_save_file():	# Invoque save_Hour_list() ou check_save()
+	return FileName
+# Make or load the save_file & note_save_file of the day
+def set_save_file():
+	"""
+		(1)	Get the save_file name of the day
+			 If the file exist
+		(2)	Open it
+		(3)	Check_save()
+			Else:
+		(4)	Create note_save_file
+		(5)	save_Hour_list()
 
-	FileName = make_save_file()
+	"""
+	FileName = make_save_file()	#(1)
 
 	try	:
-		file = io.open(FileName,encoding='utf-8',mode='r+')
-		check_save()
-	except FileNotFoundError:		
-
-	# Si le fichier n'existe pas
-	#else:
-		# Créer le fichier
-		file = io.open(FileName,encoding='utf-8',mode='w+')
+		file = io.open(FileName,encoding='utf-8',mode='r')		#(2)
+		check_save()											#(3)
 		file.close()
-		# et ouvre le fichier en écriture délétion
-		file = io.open(FileName,'w+', encoding='utf-8')
+	except FileNotFoundError:
+		file = io.open(FileName, encoding='utf-8',mode='w+')	#(4)
+		save_Hour_list()										#(5)
 		file.close()
-		save_Hour_list()
-# Sauvegarde et écrit dans un fichier les données de la journée
-def save_Hour_list():	# Invoque check_save()	# A RENDRE MODULABLE
+# Write in save_file the day data
+def save_Hour_list():
 	global  day, activity_list
+	"""
+	(1)	Actual hour
+	(2) Write file creation on top of save_file
+	(3) 'i' is hour and 'j' is activities
+	(4) len(acticity_list) = len(day[i])-1
+	(5) At every start of line set a '\n'
+		and write the activity hour
+	(6) Write the rest of activity value of the hour 'i'
+	(7) Check_save()
+	"""
 
-	local = time.localtime()
+	local = time.localtime()		#(1)
 	FileName = make_save_file()
-	save_path = 'C:\\Users\\Lucas\\Desktop\\Sam\\Prog\\projets\\AdvAgenda\\'+ FileName
 
 	# Ouvre le fichier save
 	file = open(FileName,'r+')
 
-	#=========En tête de fichier==========
+	#=========Start of folder==========
 	hour = str(local.tm_hour)
 	minute = str(local.tm_min)
 	seconde = str(local.tm_sec)
@@ -304,37 +307,28 @@ def save_Hour_list():	# Invoque check_save()	# A RENDRE MODULABLE
 	year = str(local.tm_year)
 
 	current_time = day_time +'/'+ month +'/'+ year +\
-				'  ' + hour +':'+ minute +':'+ seconde + '\n\n'
+				'  ' + hour +':'+ minute +':'+ seconde + '\n'
 	
-	file.write(str(current_time))
-	#=======================================
+	file.write(str(current_time))					#(2)
+	#================write_dayData==================
 	
 	i = 0
-
-	while i < 24:
+	while i < 24:									#(3)
 		j = 0
-		while j < len(activity_list):
-			if j == 0 and i != 0:
-				text ='\n' + str(day[i][j]) + ' '
+		while j < len(activity_list)+1:				#(4)
+			if j == 0:		
+				text ='\n' + str(day[i][j]) + ' '	#(5)
 				file.write(text)
 			else:
-				text = str(day[i][j]) + ' '
+				text = str(day[i][j]) + ' '			#(6)
 				file.write(text)
 			j += 1
 		i += 1
 	
-	#==========Fin de fichier========
-	text = ''
-	text += '\n'
-	text += '=' * 60
-	text += '\n\n'
-	file.write(str(text))
 	file.close()
-	#================================
-
-	check_save() 
-# Lis le fichier save
-def check_save():		# Invoque  update_Timeline(), update_note() et update_Hour_list()
+	check_save() 									#(7)
+# Read save_file and note_save_file for updating day
+def check_save():
 	global list_text, note_list
 
 	update_Hour_list()
@@ -360,7 +354,6 @@ def check_save():		# Invoque  update_Timeline(), update_note() et update_Hour_li
 		while i < len(text_list):
 			if i != 0 and i % 2 == 0:
 				save = text_list[i]
-
 				update_note_hour_list(note_list, save,int(text_list[i-1]))
 			i += 1
 		fichier.close()
@@ -400,13 +393,13 @@ def clear_rect():
 
 
 # Met à jour la liste des notes/heures 
-def update_note_hour_list(Hour_list, note, hour):
+def update_note_hour_list(note_list, note, hour):
 	if note_list[hour] != str(note):
 		note_list[hour] = str(note)
 		return True
 	else :
 		return False
-# Met a jour la liste des activités/heures visuelle
+# Met a jour la liste des activités/heures 
 def update_Hour_list():
 	global activity_list, day
 	
@@ -422,7 +415,7 @@ def update_Hour_list():
 		j = 0
 		text = fichier.readline()
 		save_list = text.split(' ')
-		while j < len(activity_list):
+		while j < len(activity_list)+1:
 			if day[i][j] != save_list[j] and j != 0 and j != 10:
 				day[i][j] = save_list[j]
 			j += 1
@@ -643,6 +636,7 @@ while i < len(day):
 		j += 1
 	day[i] = tab
 	i += 1
+
 
 fen = tk.Tk()
 fen.resizable(False, False)
