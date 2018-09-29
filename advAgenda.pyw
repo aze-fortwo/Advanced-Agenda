@@ -324,7 +324,6 @@ def save_Hour_list():
 	local = time.localtime()		#(1)
 	FileName = make_save_file()
 
-	# Ouvre le fichier save
 	file = open(FileName,'r+')
 
 	hour = str(local.tm_hour)
@@ -348,7 +347,11 @@ def save_Hour_list():
 				text ='\n' + str(day[i][j]) + ' '	#(5)
 				file.write(text)
 			else:
-				text = str(day[i][j]) + ' '			#(6)
+				if j == len(activity_list):
+					text = str(day[i][j])
+				else:
+					text = str(day[i][j]) + ' '			#(6)
+				
 				file.write(text)
 			j += 1
 		i += 1
@@ -538,13 +541,12 @@ def get_all_save():
 			j += 1
 		day_list.append(day)
 		i += 1
-	
+
 	return day_list
 
 def make_stats(day_list):
 	global activity_list
 	cumul_list = [0]* int(len(activity_list))
-	
 	i = 0
 	while i < len(day_list):
 		j = 0
@@ -560,7 +562,7 @@ def make_stats(day_list):
 			
 			k = 0
 			value = 0
-			if len(day_list[i][j])-1> len(activity_list):
+			if len(day_list[i][j])-1 > len(activity_list):
 				value = len(day_list[i][j]) -2
 			else:
 				value = len(day_list[i][j])-1
