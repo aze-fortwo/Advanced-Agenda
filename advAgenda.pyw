@@ -8,6 +8,29 @@ import os
 
 global day, activity_list, note_list
 
+activity_list = ["Cig","Prog","Multimedia","Fac",\
+				"Pote",'Revenu',"Dépense","Jeux",\
+				'Taff']
+
+day = []
+note_list = []
+
+i = 0
+while i < 24:
+	day.append([[0]*int(len(activity_list)+1)])
+	note_list.append('')
+	i += 1
+i = 0
+while i < len(day):
+	j = 0
+	tab = [i]
+	while j < len(activity_list):
+		tab.append(0)
+		j += 1
+	day[i] = tab
+	i += 1
+
+
 # Visual Timeline
 def make_TimeLine(fen):
 	global Timeline, Time_stamp
@@ -254,7 +277,7 @@ def make_note_save_file():
 	text = ''
 	noteFile = str(local.tm_yday) + '_Note.txt'
 
-	return FileName
+	return noteFile
 # Make or load the save_file & note_save_file of the day
 def set_save_file():
 	"""
@@ -297,7 +320,6 @@ def save_Hour_list():
 	# Ouvre le fichier save
 	file = open(FileName,'r+')
 
-	#=========Start of folder==========
 	hour = str(local.tm_hour)
 	minute = str(local.tm_min)
 	seconde = str(local.tm_sec)
@@ -310,7 +332,6 @@ def save_Hour_list():
 				'  ' + hour +':'+ minute +':'+ seconde + '\n'
 	
 	file.write(str(current_time))					#(2)
-	#================write_dayData==================
 	
 	i = 0
 	while i < 24:									#(3)
@@ -487,19 +508,8 @@ def update_Timeline():	# Invoque get_empty_hour_list()
 
 
 """===============STATISTIQUES==========="""
-# Met a jour la liste des activités/heures visuelle STATISTIQUE
-def update_list_stat(day_list, file, save_list, hour):
-
-	Hour_list_stat[hour].add_cig( int( save_list[1] ) )
-	Hour_list_stat[hour].add_prog( int( save_list[2] ) )
-	Hour_list_stat[hour].add_multimedia( int( save_list[3] ) )
-	Hour_list_stat[hour].add_pote( int( save_list[4] ) )
-	Hour_list_stat[hour].add_crypto( int( save_list[5] ) )
-	Hour_list_stat[hour].add_depense( int( save_list[6] ) )
-	Hour_list_stat[hour].add_wow(int( save_list[7]))
-	Hour_list_stat[hour].add_taff(int( save_list[8]))
-
 def get_all_save():
+	global activity_list
 	"""
 	1) Initialisation
 		- day_list stocke les données de tous les
@@ -545,35 +555,27 @@ def get_all_save():
 				save_file.append(folder)
 		# Si len(folder)> à 7 alors stocke les saves dans save_note
 		else:
-			if folder != 'src.py' and folder != 'advAgenda.pyw' and folder != 'Executable'\
+			if folder != 'src.py' and folder != 'AdvAgenda' and folder != 'Executable'\
 			and folder != 'save_stats.txt':
 				save_note.append(folder)
 
 	#==========================INIT DAY_LIST======================================
-	
-	i = 0 
-	while i < len(save_file):
-		day_list.append([[0]*6]*24)
-		i += 1
-	
-	#====================LECTURE FICHIER ANTECEDANT==============================
-
 	i = 0
-	# Lire tant qu'il y a des fichier dans save_file
 	while i < len(save_file):
-		j = 0
 		ofi = open(save_file[i], 'r')
 		ofi.readline()
 		ofi.readline()
-
-		# On enregistre chaque heure dans day_list[Jour][Heure]
+		j = 0
 		while j < 24:
-			line = ofi.readline()
-			day_list[i][j] = line.split(' ')
+			brutline = ofi.readline()
+			line = brutline.split(' ')
+			day[j] = line
 			j += 1
-		
-		ofi.close()
+		day_list.append(day)
 		i += 1
+		
+		
+	#====================LECTURE FICHIER ANTECEDANT==============================
 
 	# On note le résultat dans un nouveau fichier.txt
 	local = time.localtime()
@@ -615,29 +617,6 @@ def get_all_save():
 Time_stampX = 0 
 SaveH = 0
 
-
-activity_list = ["Cig","Prog","Multimedia","Fac",\
-				"Pote",'Revenu',"Dépense","Jeux",'Taff']
-
-day = []
-note_list = []
-
-i = 0
-while i < 24:
-	day.append([[0]*10])
-	note_list.append('')
-	i += 1
-i = 0
-while i < len(day):
-	j = 0
-	tab = [i]
-	while j < len(activity_list):
-		tab.append(0)
-		j += 1
-	day[i] = tab
-	i += 1
-
-
 fen = tk.Tk()
 fen.resizable(False, False)
 fen.title('Everyday')
@@ -645,6 +624,8 @@ fen.title('Everyday')
 make_TimeLine(fen)		# Créer la ligne visuelle
 update_Time_Stamp()		# MaJ de l'heure sur la timeline
 update_Timeline() 		# Affiche les activités
+
+get_all_save()
 
 screen_width = fen.winfo_screenwidth()
 screen_height = fen.winfo_screenheight()
