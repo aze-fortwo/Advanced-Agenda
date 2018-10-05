@@ -38,7 +38,7 @@ while i < len(day):
 
 # Visual Timeline
 def make_TimeLine(fen):
-	global Timeline, Time_stamp
+	global Timeline, Time_stamp, time1, launch
 	"""
 		Timeline: 	Visual Timeline
 		Time_stamp:	Actual hour orange line
@@ -82,11 +82,34 @@ def make_TimeLine(fen):
 		x += 36
 	
 	Timeline.grid(row=0,column=0, columnspan=5)
-
-
+	
+	time1 = ''
+	launch = 0
+	tick()
 	update_Time_Stamp()
 
 	set_save_file()
+
+# Temps chaque secondes
+def tick():		# Invoque Update_Time_Stamp()
+	global time1, H, launch
+	time2 = time.strftime('%H:%M:%S')
+
+	if time2 != time1:
+		if time2[:2] != time1[:2]:
+			if launch == 0:
+				# Display Hour management window above all others
+				H = int(time2[:2])
+			else :
+				H = int(time1[:2])
+				add_activities()
+		
+		time1 = time2
+		fen.title(time2)
+		update_Time_Stamp()
+		# Hour Alert
+		launch = 1
+	fen.after(1000, tick)
 # Update the orange time cursor
 def update_Time_Stamp():
 	"""
