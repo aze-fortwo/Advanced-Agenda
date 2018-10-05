@@ -6,11 +6,39 @@ import io
 import os
 
 
-global day, activity_list, note_list
+global day, activity_list, note_list, day_list, save_file, save_note
+
+save_file = []
+save_note = []
+
+activity_list = ["Cig","Prog","Multimedia","Fac",\
+				"Pote",'Revenu',"Dépense","Jeux",\
+				'Taff']
+
+day = []
+day_list = []
+note_list = []
+
+
+
+i = 0
+while i < 24:
+	day.append([[0]*int(len(activity_list)+1)])
+	note_list.append('')
+	i += 1
+i = 0
+while i < len(day):
+	j = 0
+	tab = [i]
+	while j < len(activity_list):
+		tab.append(0)
+		j += 1
+	day[i] = tab
+	i += 1
 
 # Visual Timeline
 def make_TimeLine(fen):
-	global Timeline, Time_stamp
+	global Timeline, Time_stamp, time1, launch
 	"""
 		Timeline: 	Visual Timeline
 		Time_stamp:	Actual hour orange line
@@ -54,11 +82,34 @@ def make_TimeLine(fen):
 		x += 36
 	
 	Timeline.grid(row=0,column=0, columnspan=5)
-
-
+	
+	time1 = ''
+	launch = 0
+	tick()
 	update_Time_Stamp()
 
 	set_save_file()
+
+# Temps chaque secondes
+def tick():		# Invoque Update_Time_Stamp()
+	global time1, H, launch
+	time2 = time.strftime('%H:%M:%S')
+
+	if time2 != time1:
+		if time2[:2] != time1[:2]:
+			if launch == 0:
+				# Display Hour management window above all others
+				H = int(time2[:2])
+			else :
+				H = int(time1[:2])
+				add_activities()
+		
+		time1 = time2
+		fen.title(time2)
+		update_Time_Stamp()
+		# Hour Alert
+		launch = 1
+	fen.after(1000, tick)
 # Update the orange time cursor
 def update_Time_Stamp():
 	"""
@@ -178,7 +229,7 @@ def add_activities():
 	tk.Button(act_window, text='>', command =next_hour ).grid(row=len(activity_list)+1, column=4, sticky=tk.S+tk.W+tk.E)
 # Save add_activities modifications
 def save_manage_list():
-	global H, Entry_list, Timeline, day
+	global H, Entry_list, Timeline, day, day_list
 	"""
 	(1)	While there is activity:
 			Update day[Hour] with the Entry value
@@ -187,6 +238,7 @@ def save_manage_list():
 		
 	(3)	save_hour_note():	Write note in note file
 	(4)	save_hour_list():	Write save in save file
+	(5)	Update the all day_list with new modification
 	"""
 	i = 0
 	while i < len(activity_list):	#(1)
@@ -199,6 +251,7 @@ def save_manage_list():
 
 	save_hour_note()	#(3)
 	save_Hour_list()	#(4)
+	day_list = get_all_save()	#(5)
 # Save note in add_activities()
 def save_hour_note():
 	global H, note, oldNote_list
@@ -254,7 +307,7 @@ def make_note_save_file():
 	text = ''
 	noteFile = str(local.tm_yday) + '_Note.txt'
 
-	return FileName
+	return noteFile
 # Make or load the save_file & note_save_file of the day
 def set_save_file():
 	"""
@@ -294,10 +347,8 @@ def save_Hour_list():
 	local = time.localtime()		#(1)
 	FileName = make_save_file()
 
-	# Ouvre le fichier save
 	file = open(FileName,'r+')
 
-	#=========Start of folder==========
 	hour = str(local.tm_hour)
 	minute = str(local.tm_min)
 	seconde = str(local.tm_sec)
@@ -310,7 +361,6 @@ def save_Hour_list():
 				'  ' + hour +':'+ minute +':'+ seconde + '\n'
 	
 	file.write(str(current_time))					#(2)
-	#================write_dayData==================
 	
 	i = 0
 	while i < 24:									#(3)
@@ -320,7 +370,11 @@ def save_Hour_list():
 				text ='\n' + str(day[i][j]) + ' '	#(5)
 				file.write(text)
 			else:
-				text = str(day[i][j]) + ' '			#(6)
+				if j == len(activity_list):
+					text = str(day[i][j])
+				else:
+					text = str(day[i][j]) + ' '			#(6)
+				
 				file.write(text)
 			j += 1
 		i += 1
@@ -359,16 +413,11 @@ def check_save():
 		fichier.close()
 
 
-# Action lors du click sur une heure
-def select_rect(eventorigin):	# Invoque add_activities
+def select_rect(eventorigin):
 	global H, Hour_list, saveButton
 	x = eventorigin.x
 	H = int(x/36)
-	#Button(fen, text='cig', command= draw_cig).grid(row=2, column=0, sticky=W)
-	#tk.Label(fen, text = 'Heure: {}'.format(H)).grid(row=0,column=0, sticky=tk.W+tk.N)
-	#Button(fen, text = 'Manage', command = add_activities).grid(row=1,column=0,sticky=W)
 	add_activities() 
-# Vide l'heure
 def clear_rect():
 	global H, Timeline, Entry_list, Time_stamp, note
 	i = 0
@@ -392,21 +441,19 @@ def clear_rect():
 	save_Hour_list()
 
 
-# Met à jour la liste des notes/heures 
 def update_note_hour_list(note_list, note, hour):
 	if note_list[hour] != str(note):
 		note_list[hour] = str(note)
 		return True
 	else :
 		return False
-# Met a jour la liste des activités/heures 
 def update_Hour_list():
 	global activity_list, day
 	
 	FileName = make_save_file()
 	fichier = open(FileName, 'r+')
 
-	save_list = list() # Données
+	save_list = list()
 	fichier.readline()
 	fichier.readline()
 
@@ -422,9 +469,8 @@ def update_Hour_list():
 		i += 1
 
 	return day
-# Met a jour la timeline visuelle
-def update_Timeline():	# Invoque get_empty_hour_list()
-	global Time_stamp, activity_list, day
+def update_Timeline():	
+	global Time_stamp, activity_list, day, Time_stampX
 
 	"""
 	Se répète pour chaque heure de la journée
@@ -487,156 +533,81 @@ def update_Timeline():	# Invoque get_empty_hour_list()
 
 
 """===============STATISTIQUES==========="""
-# Met a jour la liste des activités/heures visuelle STATISTIQUE
-def update_list_stat(day_list, file, save_list, hour):
-
-	Hour_list_stat[hour].add_cig( int( save_list[1] ) )
-	Hour_list_stat[hour].add_prog( int( save_list[2] ) )
-	Hour_list_stat[hour].add_multimedia( int( save_list[3] ) )
-	Hour_list_stat[hour].add_pote( int( save_list[4] ) )
-	Hour_list_stat[hour].add_crypto( int( save_list[5] ) )
-	Hour_list_stat[hour].add_depense( int( save_list[6] ) )
-	Hour_list_stat[hour].add_wow(int( save_list[7]))
-	Hour_list_stat[hour].add_taff(int( save_list[8]))
-
 def get_all_save():
-	"""
-	1) Initialisation
-		- day_list stocke les données de tous les
-		  jours passés organisés par [jour][Heure]
-		  	- Init day_list ajout à day_list 24 sous
-		  	  tableau de 6 attributs vides pour chaque
-			  save_file lue
-		- save_file stocke la liste des fichiers save passés
-		- save_note stocke la liste des fichiers note passés
-	2) listage fichier présent
-		- Remplissage d'Hour_list avec 24 heures
-		- os.listdir('.')
-			- Trie save_note et save_file
-	3) Lecture fichiers antécédents
-		- Ouverture des fichiers avec save_file
-		- Lecture des fichier
-			- Découpage des lignes de données
-			- Stockage dans day_list[save_file][Hour]
-			  sous la forme [5, 1,0,20,10,30,20]
-		- Créer un fichier _yday_save_stats.txt
-		  et y stocke les données des jours précédents
-	"""
-	
-	#===========================INITIALISATION================================
+	global activity_list, save_file, save_note
 
-	# Contient une journée
 	day_list = []
-	# Stocke les saves
 	save_file = list()
-	# Stocke les notes
 	save_note = list()
 
-	#======================LISTAGE FICHIER PRESENT=============================
-
-	# Lecture des save présentes dans le CWD
-	# Tant qu'il y a des fichier / dossiers
 	for folder in os.listdir('.'):
-		# Stocke les saves dans save_file 
-		# Si le nom du fichier <= à 7
 		if len(folder) <= 7:
-			if folder != 'src.py' and folder != 'AdvAgenda'and folder != 'Executable'\
+			if folder != 'src.py' and folder != 'advAgenda.pyw'and folder != 'Executable'\
 			and folder != 'save_stats.txt':
 				save_file.append(folder)
-		# Si len(folder)> à 7 alors stocke les saves dans save_note
+
 		else:
 			if folder != 'src.py' and folder != 'advAgenda.pyw' and folder != 'Executable'\
 			and folder != 'save_stats.txt':
 				save_note.append(folder)
 
-	#==========================INIT DAY_LIST======================================
-	
-	i = 0 
-	while i < len(save_file):
-		day_list.append([[0]*6]*24)
-		i += 1
-	
-	#====================LECTURE FICHIER ANTECEDANT==============================
-
 	i = 0
-	# Lire tant qu'il y a des fichier dans save_file
 	while i < len(save_file):
-		j = 0
 		ofi = open(save_file[i], 'r')
 		ofi.readline()
 		ofi.readline()
-
-		# On enregistre chaque heure dans day_list[Jour][Heure]
+		j = 0
 		while j < 24:
-			line = ofi.readline()
-			day_list[i][j] = line.split(' ')
+			brutline = ofi.readline()
+			line = brutline.split(' ')
+			day[j] = line
 			j += 1
-		
-		ofi.close()
+		day_list.append(day)
 		i += 1
 
-	# On note le résultat dans un nouveau fichier.txt
-	local = time.localtime()
-	FileName = str(local.tm_yday) + 'save_stats.txt'
-	ofi = open(FileName, 'w')
+	return day_list
 
+def make_stats(day_list):
+	global activity_list
+	cumul_list = [0]* int(len(activity_list))
 	i = 0
 	while i < len(day_list):
-		k = 0
-		while k < 24:
-			ofi.write(str(day_list[i][k]))
-			k +=1
+		j = 0
+		while j < len(day_list[i]):
+			
+			k = 0
+			while k < len(day_list[i][j]):
+				if day_list[i][j][k] == '\n':
+					del day_list[i][j][k]
+				elif day_list[i][j][k] == '':
+					del day_list[i][j][k] 
+				k += 1
+			
+			k = 0
+			value = 0
+			if len(day_list[i][j])-1 > len(activity_list):
+				value = len(day_list[i][j]) -2
+			else:
+				value = len(day_list[i][j])-1
+				
+			while k < value:
+				base = cumul_list[k]
+				base += int(day_list[i][j][k+1])
+				cumul_list[k] = base
+
+				k += 1
+			j += 1
 		i += 1
-	ofi.close()
-
+	print(cumul_list)
 	
-	"""
-	ofi = open('save_stats.txt', 'r')
-	# Récupère les données de save_stats.txt
-	x = ofi.read()
-	# Stocke dans value ces données
-	value = x.split(' ')
-	x = value
-	
-	n, bin, patches = plt.hist(x, len(day_list), normed=1, facecolor='red'\
-								,alpha=0.5)
-
-	plt.xlabel('Time')
-	plt.ylabel('Value')
-	plt.title('Evolution depuis {} jours'.format(temps_tot))
-
-
-	plt.show()
-
-	"""
 
 """===============MAIN=================="""
 
 Time_stampX = 0 
 SaveH = 0
 
-
-activity_list = ["Cig","Prog","Multimedia","Fac",\
-				"Pote",'Revenu',"Dépense","Jeux",'Taff']
-
-day = []
-note_list = []
-
-i = 0
-while i < 24:
-	day.append([[0]*10])
-	note_list.append('')
-	i += 1
-i = 0
-while i < len(day):
-	j = 0
-	tab = [i]
-	while j < len(activity_list):
-		tab.append(0)
-		j += 1
-	day[i] = tab
-	i += 1
-
+day_list = get_all_save()
+make_stats(day_list)
 
 fen = tk.Tk()
 fen.resizable(False, False)
@@ -645,6 +616,8 @@ fen.title('Everyday')
 make_TimeLine(fen)		# Créer la ligne visuelle
 update_Time_Stamp()		# MaJ de l'heure sur la timeline
 update_Timeline() 		# Affiche les activités
+
+
 
 screen_width = fen.winfo_screenwidth()
 screen_height = fen.winfo_screenheight()
