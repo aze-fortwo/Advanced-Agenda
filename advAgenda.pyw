@@ -330,14 +330,14 @@ def add_activities():
 		i += 1
 	
 	#(10)
-	note.grid(row=0, column=2,rowspan = len(activity_list),columnspan=3, sticky=tk.E)
+	note.grid(row=0, column=2,rowspan = len(activity_list),columnspan=5, sticky=tk.E)
 	tk.Button(act_window, text='Save', command= save_manage_list, highlightcolor='grey').grid(row=len(activity_list)+1,column=0,sticky=tk.S+tk.W+tk.E)
 	tk.Button(act_window, text = 'Quit', command=act_window.destroy).grid(row=len(activity_list)+1,column=1,sticky=tk.S+tk.W+tk.E)
 	tk.Button(act_window, text='Clear', command = clear_rect).grid(row=len(activity_list)+1,column=2,sticky=tk.S+tk.W+tk.E)
-	#tk.Button(act_window, text='<<', command =previous_day ).grid(row=len(activity_list)+1, column=3, sticky=tk.S+tk.E+tk.W)
-	tk.Button(act_window, text='<', command =previous_hour ).grid(row=len(activity_list)+1, column=3, sticky=tk.S+tk.E+tk.W)
-	tk.Button(act_window, text='>', command =next_hour ).grid(row=len(activity_list)+1, column=4, sticky=tk.S+tk.W+tk.E)
-	#tk.Button(act_window, text='>>', command =next_day ).grid(row=len(activity_list)+1, column=6, sticky=tk.S+tk.W+tk.E)
+	tk.Button(act_window, text='<<', command =previous_day ).grid(row=len(activity_list)+1, column=3, sticky=tk.S+tk.E+tk.W)
+	tk.Button(act_window, text='<', command =previous_hour ).grid(row=len(activity_list)+1, column=4, sticky=tk.S+tk.E+tk.W)
+	tk.Button(act_window, text='>', command =next_hour ).grid(row=len(activity_list)+1, column=5, sticky=tk.S+tk.W+tk.E)
+	tk.Button(act_window, text='>>', command =next_day ).grid(row=len(activity_list)+1, column=6, sticky=tk.S+tk.W+tk.E)
 # Save add_activities modifications
 def save_manage_list():
 	global H, Entry_list, Timeline, day, day_list
