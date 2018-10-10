@@ -30,7 +30,7 @@ def make_day():
 		i += 1
 # Visual Timeline
 def make_TimeLine(fen):
-	global Timeline, Time_stamp
+	global Timeline, Marker
 	"""
 		Timeline: 	Visual Timeline
 		Time_stamp:	Actual hour orange line
@@ -50,7 +50,6 @@ def make_TimeLine(fen):
 		set_save_file():		Créer/Charge le fichier save
 	"""
 	Timeline = tk.Canvas(fen, width=863, height = 50, bg = 'grey')
-	Time_stamp = Timeline.create_line(0,0,0,0,fill='orange',width=2)
 	launch = 0
 
 	i = 0
@@ -63,19 +62,44 @@ def make_TimeLine(fen):
 
 		Timeline.create_text(x,y, text=i, font=('Times',8,'bold'))		# (1)
 		Timeline.create_line(x,16,x,9, fill='white', tag='Hour_line')	# (2)
-		Timeline.create_line(x+8,13,x+8,16, fill='white')				# (3)
-		Timeline.create_line(x+24,13,x+24,16, fill='white')				# (4)
-		Timeline.create_line(x+16,10,x+16,16, fill='white')				# (5)
+		Timeline.create_line(x+9,13,x+9,16, fill='white')				# (3)
+		Timeline.create_line(x+25,13,x+25,16, fill='white')				# (4)
+		Timeline.create_line(x+18,10,x+18,16, fill='white')				# (5)
 		Timeline.create_rectangle(x,16,x+36,60,state='normal',\
 								outline='white', tag='rect')			# (6)
-		Timeline.create_text(x+16,9, text='30', font=("Times",'6', 'bold'),tag='hour') # (7)
+		Timeline.create_text(x+18,7, text='30', font=("Times",'6', 'bold'),tag='hour') # (7)
 		
 		i += 1
 		x += 36
 	
 	Timeline.grid(row=0,column=0, columnspan=5)
-
+	time_marker()
 	set_save_file()
+# Display an indicator of actual time on Timeline
+def time_marker():	"""
+		current_time:	Heure actuelle
+		Hseconde:		Heure en secondes
+		Mseconde:		Minute en secondes
+		MarkerX:	Position du Marker
+
+		Calcule le nombre de seconde écoulées depuis minuit
+		Calcule la position du curseur en fonction de l'heure
+		Se relance toutes les 180 000 ms soit 3 min
+	"""
+	Timeline.delete('marker')
+	current_time = time.strftime('%H:%M:%S')
+
+	hour = int(current_time[:2])
+	Hseconde = hour * 3600
+	minute = int(current_time[3:5])
+	Mseconde = minute * 60
+	seconde = int(current_time[6:8])
+
+	tot_seconde = Hseconde + Mseconde + seconde - 300
+	MarkerX =  tot_seconde/100
+	Marker = Timeline.create_rectangle(MarkerX-5,0,MarkerX+5,10, fill='red', outline='red', tag='marker')
+	Marker_pointer = Timeline.create_polygon(MarkerX-5,10,MarkerX+5,10,MarkerX,16, fill='red', tag='marker')
+	fen.after(180000,time_marker)
 # Make or load the save_file & note_save_file of the day
 def set_save_file():
 	global day_list, save_file, activity_list, day
@@ -201,7 +225,7 @@ def update_Hour_list():
 
 	return day
 def update_Timeline():	
-	global activity_list, day, Time_stampX
+	global activity_list, day
 
 	"""
 	Se répète pour chaque heure de la journée
@@ -258,9 +282,7 @@ def update_Timeline():
 			Timeline.create_line(cigx+4,40,cigx+4,60,fill='orange', width=2,tag='cig')
 			j += 1
 			cigx += 3 
-			Timeline.tag_raise(Time_stamp,'cig')
 		i += 1
-
 def select_rect(eventorigin):
 	global H, Hour_list, saveButton
 	x = eventorigin.x
@@ -330,14 +352,14 @@ def add_activities():
 		i += 1
 	
 	#(10)
-	note.grid(row=0, column=2,rowspan = len(activity_list),columnspan=3, sticky=tk.E)
+	note.grid(row=0, column=2,rowspan = len(activity_list),columnspan=5, sticky=tk.E)
 	tk.Button(act_window, text='Save', command= save_manage_list, highlightcolor='grey').grid(row=len(activity_list)+1,column=0,sticky=tk.S+tk.W+tk.E)
 	tk.Button(act_window, text = 'Quit', command=act_window.destroy).grid(row=len(activity_list)+1,column=1,sticky=tk.S+tk.W+tk.E)
 	tk.Button(act_window, text='Clear', command = clear_rect).grid(row=len(activity_list)+1,column=2,sticky=tk.S+tk.W+tk.E)
-	#tk.Button(act_window, text='<<', command =previous_day ).grid(row=len(activity_list)+1, column=3, sticky=tk.S+tk.E+tk.W)
-	tk.Button(act_window, text='<', command =previous_hour ).grid(row=len(activity_list)+1, column=3, sticky=tk.S+tk.E+tk.W)
-	tk.Button(act_window, text='>', command =next_hour ).grid(row=len(activity_list)+1, column=4, sticky=tk.S+tk.W+tk.E)
-	#tk.Button(act_window, text='>>', command =next_day ).grid(row=len(activity_list)+1, column=6, sticky=tk.S+tk.W+tk.E)
+	tk.Button(act_window, text='<<', command =previous_day ).grid(row=len(activity_list)+1, column=3, sticky=tk.S+tk.E+tk.W)
+	tk.Button(act_window, text='<', command =previous_hour ).grid(row=len(activity_list)+1, column=4, sticky=tk.S+tk.E+tk.W)
+	tk.Button(act_window, text='>', command =next_hour ).grid(row=len(activity_list)+1, column=5, sticky=tk.S+tk.W+tk.E)
+	tk.Button(act_window, text='>>', command =next_day ).grid(row=len(activity_list)+1, column=6, sticky=tk.S+tk.W+tk.E)
 # Save add_activities modifications
 def save_manage_list():
 	global H, Entry_list, Timeline, day, day_list
@@ -448,20 +470,15 @@ def next_day():
 			value = 1
 			break
 		i += 1
-
-
 def previous_day():
 	global day, activity_list, note_list, day_list, save_file, save_note
 	date = make_save_file()
 	date = int(date[:3])
 	print(date)
-
 def space_jump(eventorigin):
 	global note
 	E = '     '
 	note.insert('insert',E)
-
-
 # Return the save_file name of the day
 def make_save_file():
 	local = time.localtime()
@@ -479,7 +496,6 @@ def make_note_save_file():
 	noteFile = str(local.tm_yday) + '_Note.txt'
 
 	return noteFile
-
 def get_all_save():
 	global activity_list, save_file, save_note, day_list
 
@@ -548,6 +564,8 @@ def make_stats(day_list):
 				k += 1
 			j += 1
 		i += 1
+
+
 
 Time_stampX = 0 
 SaveH = 0
