@@ -9,7 +9,7 @@ import os
 global day, activity_list, note_list, day_list, save_file, save_note
 # Create list with 24 index with len(activity_list)+1 index
 def make_day():
-	global day
+	day = []
 	# Create an empty day_list without hour index
 	# at the start of the hour line
 	i = 0
@@ -18,7 +18,6 @@ def make_day():
 		note_list.append('')
 		i += 1
 	i = 0
-
 	# Write hour h at the start of the hour line
 	while i < len(day):
 		j = 0
@@ -28,9 +27,10 @@ def make_day():
 			j += 1
 		day[i] = tab
 		i += 1
+	return day
 # Visual Timeline
 def make_TimeLine(fen):
-	global Timeline, Time_stamp
+	global Timeline, Marker
 	"""
 		Timeline: 	Visual Timeline
 		Time_stamp:	Actual hour orange line
@@ -50,7 +50,6 @@ def make_TimeLine(fen):
 		set_save_file():		Créer/Charge le fichier save
 	"""
 	Timeline = tk.Canvas(fen, width=863, height = 50, bg = 'grey')
-	Time_stamp = Timeline.create_line(0,0,0,0,fill='orange',width=2)
 	launch = 0
 
 	i = 0
@@ -63,22 +62,55 @@ def make_TimeLine(fen):
 
 		Timeline.create_text(x,y, text=i, font=('Times',8,'bold'))		# (1)
 		Timeline.create_line(x,16,x,9, fill='white', tag='Hour_line')	# (2)
-		Timeline.create_line(x+8,13,x+8,16, fill='white')				# (3)
-		Timeline.create_line(x+24,13,x+24,16, fill='white')				# (4)
-		Timeline.create_line(x+16,10,x+16,16, fill='white')				# (5)
+		Timeline.create_line(x+9,13,x+9,16, fill='white')				# (3)
+		Timeline.create_line(x+25,13,x+25,16, fill='white')				# (4)
+		Timeline.create_line(x+18,10,x+18,16, fill='white')				# (5)
 		Timeline.create_rectangle(x,16,x+36,60,state='normal',\
 								outline='white', tag='rect')			# (6)
-		Timeline.create_text(x+16,9, text='30', font=("Times",'6', 'bold'),tag='hour') # (7)
+		Timeline.create_text(x+18,7, text='30', font=("Times",'6', 'bold'),tag='hour') # (7)
 		
 		i += 1
 		x += 36
 	
 	Timeline.grid(row=0,column=0, columnspan=5)
+	time_marker()
+# Display an indicator of actual time on Timeline
+def time_marker():
+	"""
+		current_time:	Heure actuelle
+		Hseconde:		Heure en secondes
+		Mseconde:		Minute en secondes
+		MarkerX:	Position du Marker
 
-	set_save_file()
+		Calcule le nombre de seconde écoulées depuis minuit
+		Calcule la position du curseur en fonction de l'heure
+		Se relance toutes les 180 000 ms soit 3 min
+	"""
+	Timeline.delete('marker')
+	current_time = time.strftime('%H:%M:%S')
+
+	hour = int(current_time[:2])
+	Hseconde = hour * 3600
+	minute = int(current_time[3:5])
+	Mseconde = minute * 60
+	seconde = int(current_time[6:8])
+
+	tot_seconde = Hseconde + Mseconde + seconde - 100
+	MarkerX =  tot_seconde/100
+	Marker = Timeline.create_rectangle(MarkerX-5,0,MarkerX+5,10, fill='red', outline='red', tag='marker')
+	Marker_pointer = Timeline.create_polygon(MarkerX-5,10,MarkerX+5,10,MarkerX,16, fill='red', tag='marker')
+	fen.after(180000,time_marker)
+# Return the save_file name of the day
+def make_save_file():
+	local = time.localtime()
+
+	text = ''
+	FileName = str(local.tm_yday) + '.txt'
+
+	return FileName
 # Make or load the save_file & note_save_file of the day
 def set_save_file():
-	global day_list, save_file, activity_list, day
+	global day_list, save_file, activity_list, day, relative_day
 	"""
 		(1)	Get the save_file name of the day
 		(2)	Create note_save_file
@@ -87,7 +119,7 @@ def set_save_file():
 
 	"""
 	dayfile = make_save_file()	#(1)
-
+	act_day = dayfile[:3]
 	i = 0
 	value = 0
 	while i < len(save_file):
@@ -99,6 +131,7 @@ def set_save_file():
 	if value != 1:
 		file = io.open(dayfile, encoding='utf-8',mode='w')	
 		file.close()
+
 		save_Hour_list()									#(4)
 # Write in save_file the day data
 def save_Hour_list():
@@ -144,7 +177,7 @@ def save_Hour_list():
 				file.write(text)
 			j += 1
 		i += 1
-	
+	day_list[-1] = day
 	file.close()
 	check_save() 									#(7)
 # Read save_file and note_save_file for updating day
@@ -201,7 +234,7 @@ def update_Hour_list():
 
 	return day
 def update_Timeline():	
-	global activity_list, day, Time_stampX
+	global activity_list, day
 
 	"""
 	Se répète pour chaque heure de la journée
@@ -258,9 +291,7 @@ def update_Timeline():
 			Timeline.create_line(cigx+4,40,cigx+4,60,fill='orange', width=2,tag='cig')
 			j += 1
 			cigx += 3 
-			Timeline.tag_raise(Time_stamp,'cig')
 		i += 1
-
 def select_rect(eventorigin):
 	global H, Hour_list, saveButton
 	x = eventorigin.x
@@ -436,40 +467,11 @@ def previous_hour():
 	act_window.destroy()
 	H -= 1
 	add_activities()
-def next_day():
-	global day, activity_list, note_list, day_list, save_file, save_note
-	date = make_save_file()
-	date = int(date[:3])
-
-	i = 0
-	value = 0
-	while i < len(save_file):
-		if save_file[i] == date:
-			value = 1
-			break
-		i += 1
-
-
-def previous_day():
-	global day, activity_list, note_list, day_list, save_file, save_note
-	date = make_save_file()
-	date = int(date[:3])
-	print(date)
-
 def space_jump(eventorigin):
 	global note
 	E = '     '
 	note.insert('insert',E)
 
-
-# Return the save_file name of the day
-def make_save_file():
-	local = time.localtime()
-
-	text = ''
-	FileName = str(local.tm_yday) + '.txt'
-
-	return FileName
 # Return the note_save_file name of the day
 def make_note_save_file():
 	
@@ -479,7 +481,6 @@ def make_note_save_file():
 	noteFile = str(local.tm_yday) + '_Note.txt'
 
 	return noteFile
-
 def get_all_save():
 	global activity_list, save_file, save_note, day_list
 
@@ -503,6 +504,7 @@ def get_all_save():
 		ofi.readline()
 		ofi.readline()
 		j = 0
+		day = make_day()
 		while j < 24:
 			brutline = ofi.readline()
 			line = brutline.split(' ')
@@ -514,46 +516,71 @@ def get_all_save():
 				if line[k] == '':
 					del line[k]
 				k += 1
+			base = str(line[0])
+			base = str(save_file[i][:3]) + '.'+base
+			line[0] = base
 			day[j] = line
+			base = ''
 			j += 1
 		day_list.append(day)
 		i += 1
-	
 	return day_list
 def make_stats(day_list):
 	global activity_list
-	cumul_list = [0]* int(len(activity_list)+1)
-	print(cumul_list)
-	print(day_list[0][23])
+	ofi = io.open('Executable\\Stats.txt', mode='w+')
+	lenght = len(activity_list)
+	lenght += 1
+	cumul_list = [0]* lenght
 	i = 0
+	base = 0
 	while i < len(day_list):
 		j = 0
 		while j < len(day_list[i]):
-			
 			k = 0
-			while k < len(day_list[i][j]):
-				if day_list[i][j][k] == '\n':
-					del day_list[i][j][k]
-					break
-				elif day_list[i][j][k] == '':
-					del day_list[i][j][k] 
-					break
+			while k < len(activity_list):
 				k += 1
-			
-			k = 0
-			while k < len(day_list[i][j]):
+					
 				base = cumul_list[k]
 				base += int(day_list[i][j][k])
 				cumul_list[k] = base
-				k += 1
+
+				stattext =str(cumul_list) + '\n'
+				
 			j += 1
 		i += 1
+	i = 0 
+
+	while i < len(activity_list):
+		txt = activity_list[i] + ':' +'\t'+str(cumul_list[i+1]) + '\n'
+		ofi.write(txt)
+		i += 1
+	
+	ofi.close()
+
+''' PROGRESS '''
+def next_day():
+	global day, activity_list, day_list, save_file, relative_day
+	date = make_save_file()
+	date = int(date[:3])
+	
+	i = 0
+	value = 0
+	while i < len(save_file):
+		if save_file[i] == date:
+			value = 1
+			break
+		i += 1
+def previous_day():
+	global day, activity_list, note_list, day_list, save_file, save_note
+	date = make_save_file()
+	date = int(date[:3])
+	print(date)
+
 
 Time_stampX = 0 
 SaveH = 0
 save_file = []
 save_note = []
-day = []
 day_list = []
 note_list = []
 activity_list = ["Cig","Prog","Multimedia","Fac",\
@@ -561,16 +588,18 @@ activity_list = ["Cig","Prog","Multimedia","Fac",\
 				'Taff']
 
 
-make_day()
+day=make_day()
 day_list = get_all_save()
+make_stats(day_list)
 #Reset day
-make_day()
+day=make_day()
 
 
 fen = tk.Tk()
 fen.resizable(False, False)
 fen.title('Everyday')
 make_TimeLine(fen)		# Créer la ligne visuelle
+set_save_file()
 
 screen_width = fen.winfo_screenwidth()
 screen_height = fen.winfo_screenheight()
