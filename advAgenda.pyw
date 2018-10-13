@@ -284,7 +284,9 @@ def select_rect(eventorigin):
 	global H, Hour_list, saveButton
 	x = eventorigin.x
 	H = int(x/36)
-	add_activities() 		
+	add_activities() 	
+	if H >= 20:
+		day_resume()	
 # New menu for add activity
 def add_activities():
 	global H, day, Entry_list, note, activity_list, note_list, act_window
@@ -294,16 +296,12 @@ def add_activities():
 	(3)	function_list:	Stock hour H activities
 	(4)	Entry_list:		Stock Entry for save_manage_hour()
 	Create a new window
-	Put a frame on the left side of it
-
-		
+	Put a frame on the left side of it		
 			note_list:		Sock  notes
 			Note:			Get houre note H
 	(5)(6) Make note widget with binding
 	(7) If note is not empty, make it appear on the note widget
 	(8)	Get day data in function_list
-
-
 	(9)	while activities left:
 			(1)	Write activity name in the frame
 			(2)	Put an entry next to the act_name
@@ -311,10 +309,8 @@ def add_activities():
 			(4) Insert the activity value in the
 				corresponding entry
 			(5) Grid the Entry
-
 	(10)	Create save, quit, next, previous, clear button and
 			grid them below the last Entry
-
 	"""
 	act_window = tk.Toplevel()		#(1)
 	act_window.title('Hour: {}'.format(H))		#(2)
@@ -378,6 +374,34 @@ def save_manage_list():
 
 	save_hour_note()	#(3)
 	save_Hour_list()	#(4)
+def day_resume():
+	global day_list, activity_list, day
+	cumul = [0] * int(len(activity_list)+1)
+	resume_window = tk.Toplevel()
+	resume_window.title('Daily resume')
+	j = 0
+	while j < 24:		
+		k = 0
+		while k < len(day_list[-1][j]):
+			if k != 0:
+				base = int(cumul[k-1])
+				base += int(day_list[-1][j][k])
+				cumul[k-1] = base
+			k += 1			
+
+		j += 1
+	
+	i = 0
+	while i < len(activity_list):
+		tk.Label(resume_window, text=activity_list[i]).grid(row=i, column=0)
+		if i != 0 and i != 6 and i != 7:
+			txt = str(cumul[i])+' min'
+		elif i == 6 or i == 7:
+			txt = str(cumul[i]) + '€'
+		else:
+			txt = cumul[i]
+		tk.Label(resume_window, text=txt).grid(row=i, column=1)
+		i += 1
 def update_note_hour_list(note_list, note, hour):
 	if note_list[hour] != str(note):
 		note_list[hour] = str(note)
@@ -491,7 +515,7 @@ def make_note_save_file():
 	return noteFile
 def get_all_save():
 	global activity_list, save_file, save_note, day_list
-
+	day_list = []
 	save_file = list()
 	save_note = list()
 
@@ -515,6 +539,8 @@ def get_all_save():
 		while j < 24:
 			brutline = ofi.readline()
 			line = brutline.split(' ')
+			base = line[0]
+			line[0] = save_file[i][:3]+'.'+base
 			k = 0
 			while k < len(line):
 				if line[k] == '\n':
