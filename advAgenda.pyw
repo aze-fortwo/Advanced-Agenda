@@ -56,10 +56,7 @@ def make_TimeLine(fen):
 	x = 0
 	y = 5
 
-
-	
 	while i < 24:
-
 		Timeline.create_text(x,y, text=i, font=('Times',8,'bold'))		# (1)
 		Timeline.create_line(x,16,x,9, fill='white', tag='Hour_line')	# (2)
 		Timeline.create_line(x+9,13,x+9,16, fill='white')				# (3)
@@ -68,7 +65,6 @@ def make_TimeLine(fen):
 		Timeline.create_rectangle(x,16,x+36,60,state='normal',\
 								outline='white', tag='rect')			# (6)
 		Timeline.create_text(x+18,7, text='30', font=("Times",'6', 'bold'),tag='hour') # (7)
-		
 		i += 1
 		x += 36
 	
@@ -76,7 +72,8 @@ def make_TimeLine(fen):
 	time_marker()
 	set_save_file()
 # Display an indicator of actual time on Timeline
-def time_marker():	"""
+def time_marker():	
+	"""
 		current_time:	Heure actuelle
 		Hseconde:		Heure en secondes
 		Mseconde:		Minute en secondes
@@ -95,8 +92,7 @@ def time_marker():	"""
 	Mseconde = minute * 60
 	seconde = int(current_time[6:8])
 
-	tot_seconde = Hseconde + Mseconde + seconde - 300
-	MarkerX =  tot_seconde/100
+	MarkerX = (hour *36) + int((Mseconde + seconde)/100)
 	Marker = Timeline.create_rectangle(MarkerX-5,0,MarkerX+5,10, fill='red', outline='red', tag='marker')
 	Marker_pointer = Timeline.create_polygon(MarkerX-5,10,MarkerX+5,10,MarkerX,16, fill='red', tag='marker')
 	fen.after(180000,time_marker)
@@ -126,7 +122,7 @@ def set_save_file():
 		save_Hour_list()									#(4)
 # Write in save_file the day data
 def save_Hour_list():
-	global  day, activity_list
+	global  day, activity_list, day_list
 	"""
 	(1)	Actual hour
 	(2) Write file creation on top of save_file
@@ -135,7 +131,8 @@ def save_Hour_list():
 	(5) At every start of line set a '\n'
 		and write the activity hour
 	(6) Write the rest of activity value of the hour 'i'
-	(7) Check_save()
+	(7)	Update the all day_list with new modification
+	(8) Check_save()
 	"""
 
 	local = time.localtime()		#(1)
@@ -170,7 +167,8 @@ def save_Hour_list():
 		i += 1
 	
 	file.close()
-	check_save() 									#(7)
+	day_list = get_all_save()						#(7)
+	check_save() 									#(8)
 # Read save_file and note_save_file for updating day
 def check_save():
 	global list_text, note_list
@@ -201,7 +199,6 @@ def check_save():
 				update_note_hour_list(note_list, save,int(text_list[i-1]))
 			i += 1
 		fichier.close()
-# add_activity Button function & shortcut
 def update_Hour_list():
 	global activity_list, day, save_file
 	
@@ -237,12 +234,12 @@ def update_Timeline():
 	'pos1 += pos' permet d'avancer le début du prochain rectangle d'activité à la fin du précédent
 	"""
 
-	color = ['red','light blue',  'yellow', 'light green','purple','blue']
+	color = ['light blue', 'red',  'yellow', 'light green','purple','blue']
 
 	i = 0
 	while i < 24:
 		
-		function_list = [int(day[i][3]), int(day[i][2]), int(day[i][4]),int(day[i][5]),\
+		function_list = [int(day[i][2]), int(day[i][3]), int(day[i][4]),int(day[i][5]),\
 						int(day[i][8]),int(day[i][9])]
 
 		pos1 = i*36
@@ -287,7 +284,9 @@ def select_rect(eventorigin):
 	global H, Hour_list, saveButton
 	x = eventorigin.x
 	H = int(x/36)
-	add_activities() 		
+	add_activities() 	
+	if H >= 20:
+		day_resume()	
 # New menu for add activity
 def add_activities():
 	global H, day, Entry_list, note, activity_list, note_list, act_window
@@ -297,16 +296,12 @@ def add_activities():
 	(3)	function_list:	Stock hour H activities
 	(4)	Entry_list:		Stock Entry for save_manage_hour()
 	Create a new window
-	Put a frame on the left side of it
-
-		
+	Put a frame on the left side of it		
 			note_list:		Sock  notes
 			Note:			Get houre note H
 	(5)(6) Make note widget with binding
 	(7) If note is not empty, make it appear on the note widget
 	(8)	Get day data in function_list
-
-
 	(9)	while activities left:
 			(1)	Write activity name in the frame
 			(2)	Put an entry next to the act_name
@@ -314,13 +309,11 @@ def add_activities():
 			(4) Insert the activity value in the
 				corresponding entry
 			(5) Grid the Entry
-
 	(10)	Create save, quit, next, previous, clear button and
 			grid them below the last Entry
-
 	"""
 	act_window = tk.Toplevel()		#(1)
-	act_window.title('Heure: {}'.format(H))		#(2)
+	act_window.title('Hour: {}'.format(H))		#(2)
 	panneau = tk.Frame(act_window, width=165, height = 195).grid(row=0,column=0,columnspan=3,rowspan=7)
 	act_window.resizable(False, False)
 	
@@ -366,12 +359,9 @@ def save_manage_list():
 	"""
 	(1)	While there is activity:
 			Update day[Hour] with the Entry value
-		
 	(2)	Reset the Hour on graphical timeline for re-drawing
-		
 	(3)	save_hour_note():	Write note in note file
 	(4)	save_hour_list():	Write save in save file
-	(5)	Update the all day_list with new modification
 	"""
 	i = 0
 	while i < len(activity_list):	#(1)
@@ -384,7 +374,34 @@ def save_manage_list():
 
 	save_hour_note()	#(3)
 	save_Hour_list()	#(4)
-	day_list = get_all_save()	#(5)
+def day_resume():
+	global day_list, activity_list, day
+	cumul = [0] * int(len(activity_list)+1)
+	resume_window = tk.Toplevel()
+	resume_window.title('Daily resume')
+	j = 0
+	while j < 24:		
+		k = 0
+		while k < len(day_list[-1][j]):
+			if k != 0:
+				base = int(cumul[k-1])
+				base += int(day_list[-1][j][k])
+				cumul[k-1] = base
+			k += 1			
+
+		j += 1
+	
+	i = 0
+	while i < len(activity_list):
+		tk.Label(resume_window, text=activity_list[i]).grid(row=i, column=0)
+		if i != 0 and i != 6 and i != 7:
+			txt = str(cumul[i])+' min'
+		elif i == 6 or i == 7:
+			txt = str(cumul[i]) + '€'
+		else:
+			txt = cumul[i]
+		tk.Label(resume_window, text=txt).grid(row=i, column=1)
+		i += 1
 def update_note_hour_list(note_list, note, hour):
 	if note_list[hour] != str(note):
 		note_list[hour] = str(note)
@@ -445,8 +462,8 @@ def clear_rect():
 	Timeline.tag_raise(Time_stamp, 'del_rect')
 
 	note.delete(0.0, index2=tk.END)
+	
 	save_hour_note()
-
 	save_Hour_list()
 def next_hour():
 	global H, act_window
@@ -498,19 +515,19 @@ def make_note_save_file():
 	return noteFile
 def get_all_save():
 	global activity_list, save_file, save_note, day_list
-
+	day_list = []
 	save_file = list()
 	save_note = list()
 
 	for folder in os.listdir('.'):
 		if len(folder) <= 7:
-			if folder != 'src.py' and folder != 'advAgenda.pyw'and folder != 'Executable'\
-			and folder != 'save_stats.txt':
+			if folder != '' and folder != 'advAgenda.pyw'and folder != '.git'\
+			and folder != 'README.md':
 				save_file.append(folder)
 
 		else:
-			if folder != 'src.py' and folder != 'advAgenda.pyw' and folder != 'Executable'\
-			and folder != 'save_stats.txt':
+			if folder != '' and folder != 'advAgenda.pyw'and folder != '.git'\
+			and folder != 'README.md':
 				save_note.append(folder)
 
 	i = 0
@@ -522,6 +539,8 @@ def get_all_save():
 		while j < 24:
 			brutline = ofi.readline()
 			line = brutline.split(' ')
+			base = line[0]
+			line[0] = save_file[i][:3]+'.'+base
 			k = 0
 			while k < len(line):
 				if line[k] == '\n':
@@ -574,9 +593,9 @@ save_note = []
 day = []
 day_list = []
 note_list = []
-activity_list = ["Cig","Prog","Multimedia","Fac",\
-				"Pote",'Revenu',"Dépense","Jeux",\
-				'Taff']
+activity_list = ["Cig","Code","Multimedia","Maison",\
+				"Friend",'Income',"Outcome","Game",\
+				'Work']
 
 
 make_day()
