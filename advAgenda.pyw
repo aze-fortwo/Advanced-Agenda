@@ -6,10 +6,12 @@ import io
 import os
 
 
-global day, activity_list, note_list, day_list, save_file, save_note
+global day, activity_list, note_list, day_list, save_file, save_note, launched
+launched = 0
 # Create list with 24 index with len(activity_list)+1 index
 def make_day():
 	global day
+	day = []
 	# Create an empty day_list without hour index
 	# at the start of the hour line
 	i = 0
@@ -30,7 +32,7 @@ def make_day():
 		i += 1
 # Visual Timeline
 def make_TimeLine(fen):
-	global Timeline, Marker
+	global Timeline, Marker, launched
 	"""
 		Timeline: 	Visual Timeline
 		Time_stamp:	Actual hour orange line
@@ -70,7 +72,8 @@ def make_TimeLine(fen):
 	
 	Timeline.grid(row=0,column=0, columnspan=5)
 	time_marker()
-	set_save_file()
+	if launched == 0:
+		set_save_file()
 # Display an indicator of actual time on Timeline
 def time_marker():	
 	"""
@@ -98,7 +101,7 @@ def time_marker():
 	fen.after(180000,time_marker)
 # Make or load the save_file & note_save_file of the day
 def set_save_file():
-	global day_list, save_file, activity_list, day
+	global save_file, act_day, launched
 	"""
 		(1)	Get the save_file name of the day
 		(2)	Create note_save_file
@@ -107,16 +110,17 @@ def set_save_file():
 
 	"""
 	dayfile = make_save_file()	#(1)
+	act_day = dayfile[:3]
 
 	i = 0
 	value = 0
 	while i < len(save_file):
-		if save_file[i] == dayfile:
+		if save_file[i] == dayfile and launched == 0:
 			check_save()									#(3)
 			value = 1
 		i += 1		
 	
-	if value != 1:
+	if value != 1 and launched == 0:
 		file = io.open(dayfile, encoding='utf-8',mode='w')	
 		file.close()
 		save_Hour_list()									#(4)
@@ -171,9 +175,10 @@ def save_Hour_list():
 	check_save() 									#(8)
 # Read save_file and note_save_file for updating day
 def check_save():
-	global list_text, note_list
-
-	update_Hour_list()
+	global note_list
+	if launched == 0:
+		FileName = make_save_file()
+		update_Hour_list(FileName)
 	update_Timeline()
 	
 	noteFile = make_note_save_file()
@@ -199,10 +204,10 @@ def check_save():
 				update_note_hour_list(note_list, save,int(text_list[i-1]))
 			i += 1
 		fichier.close()
-def update_Hour_list():
-	global activity_list, day, save_file
+def update_Hour_list(FileName):
+	global activity_list, day
 	
-	FileName = make_save_file()
+	
 	fichier = open(FileName, 'r+')
 
 	save_list = list()
@@ -220,7 +225,6 @@ def update_Hour_list():
 			j += 1
 		i += 1
 
-	return day
 def update_Timeline():	
 	global activity_list, day
 
@@ -245,7 +249,12 @@ def update_Timeline():
 		pos1 = i*36
 		pos = 0
 		j = 0
+
 		tot = 0
+		l = 0
+		while l < len(function_list):
+			tot += int(function_list[l])
+			l += 1
 
 		while j < len(function_list):
 			if function_list[j] != 0:
@@ -258,7 +267,7 @@ def update_Timeline():
 					tot += function_list[k]
 					k += 1
 
-				if tot <= 60:
+				if tot > 60:
 					Timeline.create_rectangle(pos1+1,17,pos1+pos-1,59, outline=color[j],\
 							fill=color[j])
 					pos1 += pos -1
@@ -280,8 +289,9 @@ def update_Timeline():
 			j += 1
 			cigx += 3 
 		i += 1
+	launched = 1
 def select_rect(eventorigin):
-	global H, Hour_list, saveButton
+	global H, Hour_list, saveButton, launched
 	x = eventorigin.x
 	H = int(x/36)
 	add_activities() 	
@@ -394,9 +404,9 @@ def day_resume():
 	i = 0
 	while i < len(activity_list):
 		tk.Label(resume_window, text=activity_list[i]).grid(row=i, column=0)
-		if i != 0 and i != 6 and i != 7:
+		if i != 0 and i != 5 and i != 6:
 			txt = str(cumul[i])+' min'
-		elif i == 6 or i == 7:
+		elif i == 5 or i == 6:
 			txt = str(cumul[i]) + '€'
 		else:
 			txt = cumul[i]
@@ -445,7 +455,7 @@ def save_hour_note():
 	infile.write(newNote_list)	#(8)
 	infile.close()
 def clear_rect():
-	global H, Timeline, Entry_list, Time_stamp, note
+	global H, Timeline, Entry_list, note
 	i = 0
 	while i < len(activity_list):
 		if i != 0:
@@ -459,12 +469,17 @@ def clear_rect():
 		Entry_list[i].delete(0, last=100)
 		Entry_list[i].insert(0,'0')
 		i += 1
-	Timeline.tag_raise(Time_stamp, 'del_rect')
 
 	note.delete(0.0, index2=tk.END)
-	
-	save_hour_note()
-	save_Hour_list()
+def clear_timeline():
+	global H
+	save = H
+	i = 0
+	while i < 24:
+		H = i
+		clear_rect()
+		i += 1
+	H = save
 def next_hour():
 	global H, act_window
 	act_window.destroy()
@@ -475,23 +490,24 @@ def previous_hour():
 	act_window.destroy()
 	H -= 1
 	add_activities()
-def next_day():
-	global day, activity_list, note_list, day_list, save_file, save_note
-	date = make_save_file()
-	date = int(date[:3])
 
-	i = 0
-	value = 0
-	while i < len(save_file):
-		if save_file[i] == date:
-			value = 1
-			break
-		i += 1
+def next_day():
+	global act_window, day_list, act_day, relative_day, save_file, day
+	relative_day = int(act_day[:3]) +1 
+	relative_day = str(relative_day) + '.txt'
+	clear_timeline()
+	update_Hour_list(relative_day)
+	update_Timeline()
+	act_day = relative_day[:3]
 def previous_day():
-	global day, activity_list, note_list, day_list, save_file, save_note
-	date = make_save_file()
-	date = int(date[:3])
-	print(date)
+	global act_window, day_list, act_day, relative_day, save_file, day
+	relative_day = int(act_day[:3]) -1
+	relative_day = str(relative_day) + '.txt'
+	clear_timeline()
+	update_Hour_list(relative_day)
+	update_Timeline()
+	act_day = relative_day[:3]
+
 def space_jump(eventorigin):
 	global note
 	E = '     '
@@ -515,6 +531,7 @@ def make_note_save_file():
 	return noteFile
 def get_all_save():
 	global activity_list, save_file, save_note, day_list
+	dDay = [[0]*int(len(activity_list)+1)]*24
 	day_list = []
 	save_file = list()
 	save_note = list()
@@ -549,11 +566,10 @@ def get_all_save():
 				if line[k] == '':
 					del line[k]
 				k += 1
-			day[j] = line
+			dDay[j] = line
 			j += 1
-		day_list.append(day)
+		day_list.append(dDay)
 		i += 1
-	
 	return day_list
 def make_stats(day_list):
 	global activity_list
@@ -600,9 +616,6 @@ activity_list = ["Cig","Code","Multimedia","Maison",\
 
 make_day()
 day_list = get_all_save()
-#Reset day
-make_day()
-
 
 fen = tk.Tk()
 fen.resizable(False, False)
