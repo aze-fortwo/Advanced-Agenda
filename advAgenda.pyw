@@ -10,18 +10,20 @@ global day, activity_list, note_list, day_list, save_file, save_note, launched
 launched = 0
 # Create list with 24 index with len(activity_list)+1 index
 def make_day():
-	global day
-	day = []
 	# Create an empty day_list without hour index
 	# at the start of the hour line
+	global day
+	
+	day = []
+
 	i = 0
 	while i < 24:
 		day.append([[0]*int(len(activity_list)+1)])
 		note_list.append('')
 		i += 1
-	i = 0
 
 	# Write hour h at the start of the hour line
+	i = 0
 	while i < len(day):
 		j = 0
 		tab = [i]
@@ -77,53 +79,55 @@ def make_TimeLine(fen):
 # Display an indicator of actual time on Timeline
 def time_marker():	
 	"""
-		current_time:	Heure actuelle
-		Hseconde:		Heure en secondes
-		Mseconde:		Minute en secondes
-		MarkerX:	Position du Marker
-
-		Calcule le nombre de seconde écoulées depuis minuit
-		Calcule la position du curseur en fonction de l'heure
-		Se relance toutes les 180 000 ms soit 3 min
+	Position of the red arker on top of timeline wich represent actual hour
+	1) Convert actual time (HH:MM:SS) to second from midnight
+	2) One hour = 36 pixels, 1 sec = 0.01 pixels -> Xs/100 = pixels traveled
+	3) Draw marker on canvas with updated position
+	4) Every 3 minutes, the marker should travel 1 pixel right
 	"""
 	Timeline.delete('marker')
 	current_time = time.strftime('%H:%M:%S')
 
+	#1)
 	hour = int(current_time[:2])
 	Hseconde = hour * 3600
 	minute = int(current_time[3:5])
 	Mseconde = minute * 60
 	seconde = int(current_time[6:8])
 
+	#2)
 	MarkerX = (hour *36) + int((Mseconde + seconde)/100)
+
+	#3)
 	Marker = Timeline.create_rectangle(MarkerX-5,0,MarkerX+5,10, fill='red', outline='red', tag='marker')
 	Marker_pointer = Timeline.create_polygon(MarkerX-5,10,MarkerX+5,10,MarkerX,16, fill='red', tag='marker')
+
+	#4)
 	fen.after(180000,time_marker)
 # Make or load the save_file & note_save_file of the day
 def set_save_file():
 	global save_file, act_day, launched
 	"""
 		(1)	Get the save_file name of the day
-		(2)	Create note_save_file
-		(3) check_save()
-		(4)	save_Hour_list()
+		(2) check_save()
+		(3)	save_Hour_list()
 
 	"""
-	dayfile = make_save_file()	#(1)
+	dayfile = get_day_txt()	#(1)
 	act_day = dayfile[:3]
 
 	i = 0
 	value = 0
 	while i < len(save_file):
 		if save_file[i] == dayfile and launched == 0:
-			check_save()									#(3)
+			check_save()									#(2)
 			value = 1
 		i += 1		
 	
 	if value != 1 and launched == 0:
 		file = io.open(dayfile, encoding='utf-8',mode='w')	
 		file.close()
-		save_Hour_list()									#(4)
+		save_Hour_list()									#(3)
 # Write in save_file the day data
 def save_Hour_list():
 	global  day, activity_list, day_list
@@ -140,7 +144,7 @@ def save_Hour_list():
 	"""
 
 	local = time.localtime()		#(1)
-	FileName = make_save_file()
+	FileName = get_day_txt()
 	# Ouvre le fichier save
 	file = open(FileName,'r+')
 
@@ -176,40 +180,56 @@ def save_Hour_list():
 # Read save_file and note_save_file for updating day
 def check_save():
 	global note_list
+	
+	#If this is the first launch
 	if launched == 0:
-		FileName = make_save_file()
+		# Get the last day
+		FileName = get_day_txt()
+		# Update global day with this file content
 		update_Hour_list(FileName)
+	# Update visual timeline
 	update_Timeline()
 	
-	noteFile = make_note_save_file()
+	# Make note file save
+	noteFile = FileName[:3] + '_Note.txt'
 
-	# Vérifie la non-présence de Save_note.txt
+	# if no note save file already exist
 	if os.path.exists(noteFile) == False:
+		# Create a new note file
 		file = io.open(noteFile,encoding='utf-8',mode='w+')
 		i = 0
-		while i < 24:		# Rentre chaque heure avec les marqueurs à chaque ligne
+		# Write every Hour with '¤' between hour and note as ¤0¤Note¤1¤¤2¤...
+		while i < 24:		
 			text = '¤'+str(i)+'¤'
 			file.write(text)
 			i += 1
 		file.close()
 	else:
+		# Read the note file save
 		fichier = io.open(noteFile,encoding='utf-8',mode ='r+')
 	
 		text = fichier.read()
+		# Split note from hour 
 		text_list = text.split('¤')
 		i = 0
 		while i < len(text_list):
+			# Every 2 element of the list and if the element is not the first one
 			if i != 0 and i % 2 == 0:
+				# Save the note content
 				save = text_list[i]
+				# Check if note isn't already like that 
+				# If not, update it
 				update_note_hour_list(note_list, save,int(text_list[i-1]))
 			i += 1
 		fichier.close()
+# Get save from file and update day with it
 def update_Hour_list(FileName):
 	global activity_list, day
 	
-	
+	# Open the save_file
 	fichier = open(FileName, 'r+')
 
+	#Contain split version of line in the save 
 	save_list = list()
 	fichier.readline()
 	fichier.readline()
@@ -219,58 +239,62 @@ def update_Hour_list(FileName):
 		j = 0
 		text = fichier.readline()
 		save_list = text.split(' ')
+		# len(activity_list) +1 because of the hour at position 0 in day[i][0]
 		while j < len(activity_list)+1:
+			# If the actual saved data are outdated
 			if day[i][j] != save_list[j] and j != 0:
+			# Replace old save by new written
 				day[i][j] = save_list[j]
 			j += 1
 		i += 1
-
+# Update visual timeline
 def update_Timeline():	
-	global activity_list, day
+	global activity_list, day, launched
 
 	"""
-	Se répète pour chaque heure de la journée
-	'pos1' définit le début du rectangle d'heure en pixels
-	'pos' définit la longueur du rectangle  en fonction de la durée
-	'j' permet d'accéder aux attributs de Hour_list via function_list
-	'tot' vérifie que le temps d'activité n'excède pas les 60 minutes / heures
-
-	'pos1 += pos' permet d'avancer le début du prochain rectangle d'activité à la fin du précédent
+	Repeat every hour of the day (24 for knowledge)
+	'pos1' define the first point of the hour rectangle
+	'pos' define the lenght of the rectangle regard to the time passed
+	'tot' check if the total time of activity doesn't exceed 60 minutes (if multy activity for exemple)
 	"""
-
+	# Color added to the rectangle when draw
 	color = ['light blue', 'red',  'yellow', 'light green','purple','blue']
 
 	i = 0
 	while i < 24:
 		
+		# All visual data needed are here
 		function_list = [int(day[i][2]), int(day[i][3]), int(day[i][4]),int(day[i][5]),\
 						int(day[i][8]),int(day[i][9])]
 
+		# Convert hour to pixels (1h=36 pixels)
 		pos1 = i*36
 		pos = 0
 		j = 0
 
-		tot = 0
-		l = 0
-		while l < len(function_list):
-			tot += int(function_list[l])
-			l += 1
+
 
 		while j < len(function_list):
+			# If there is data to draw
 			if function_list[j] != 0:
 				pos = function_list[j]
+				# 5 min is 3 pixels
 				pos /= 5
+				# We get how much pixels from total seconds
 				pos *= 3
+				tot = 0
 				
+				# Get activity cumul of the hour
 				k = 0
 				while k < len(function_list):
 					tot += function_list[k]
 					k += 1
 
+				# Is activity_cumul > 60 ?
 				if tot > 60:
 					Timeline.create_rectangle(pos1+1,17,pos1+pos-1,59, outline=color[j],\
 							fill=color[j])
-					pos1 += pos -1
+					pos1 += pos 
 				else:
 					Timeline.create_rectangle(pos1+1,17,pos1+pos-1,59, outline=color[j],\
 							fill=color[j])					
@@ -289,17 +313,21 @@ def update_Timeline():
 			j += 1
 			cigx += 3 
 		i += 1
-	launched = 1
+	if launched == 0:
+		launched = 1
+	elif launched == 'o':
+		pass
+# Get from the pos of the cursor the hour selected on timeline
 def select_rect(eventorigin):
-	global H, Hour_list, saveButton, launched
+	global H, Hour_list, saveButton
 	x = eventorigin.x
 	H = int(x/36)
-	add_activities() 	
+	manage() 	
 	if H >= 20:
 		day_resume()	
-# New menu for add activity
-def add_activities():
-	global H, day, Entry_list, note, activity_list, note_list, act_window
+# Menu for adding activity
+def manage():
+	global H, day, Entry_list, note, activity_list, note_list, act_window, launched
 	"""
 	(1)	act_window:		Window for activity modification
 	(2)	panneau:		Stock Entry and Label
@@ -344,10 +372,14 @@ def add_activities():
 
 	i = 0
 	rowi=0
+
 	while i < len(activity_list):		#(9)
 		value = str(function_list[i]) 						#(1)
 		tk.Label(act_window,parent = panneau, text=activity_list[i], justify=tk.LEFT).grid(row=rowi,column=0, sticky=tk.N)
-		En = tk.Entry(act_window,parent = panneau, width=5) #(2)
+		if launched != 'o':
+			En = tk.Entry(act_window,parent = panneau, width=5) #(2)
+		else:
+			En = tk.Entry(act_window,parent = panneau, width=5) #(2)
 		Entry_list.append(En) 								#(3)
 		Entry_list[i].insert(0,value) 						#(4)
 		Entry_list[i].grid(row=rowi,column=1, sticky=tk.N)  #(5)
@@ -356,15 +388,16 @@ def add_activities():
 	
 	#(10)
 	note.grid(row=0, column=2,rowspan = len(activity_list),columnspan=5, sticky=tk.E)
-	tk.Button(act_window, text='Save', command= save_manage_list, highlightcolor='grey').grid(row=len(activity_list)+1,column=0,sticky=tk.S+tk.W+tk.E)
 	tk.Button(act_window, text = 'Quit', command=act_window.destroy).grid(row=len(activity_list)+1,column=1,sticky=tk.S+tk.W+tk.E)
-	tk.Button(act_window, text='Clear', command = clear_rect).grid(row=len(activity_list)+1,column=2,sticky=tk.S+tk.W+tk.E)
 	tk.Button(act_window, text='<<', command =previous_day ).grid(row=len(activity_list)+1, column=3, sticky=tk.S+tk.E+tk.W)
 	tk.Button(act_window, text='<', command =previous_hour ).grid(row=len(activity_list)+1, column=4, sticky=tk.S+tk.E+tk.W)
 	tk.Button(act_window, text='>', command =next_hour ).grid(row=len(activity_list)+1, column=5, sticky=tk.S+tk.W+tk.E)
 	tk.Button(act_window, text='>>', command =next_day ).grid(row=len(activity_list)+1, column=6, sticky=tk.S+tk.W+tk.E)
-# Save add_activities modifications
-def save_manage_list():
+	if launched != 'o':
+		tk.Button(act_window, text='Save', command= save_manage, highlightcolor='grey').grid(row=len(activity_list)+1,column=0,sticky=tk.S+tk.W+tk.E)
+		tk.Button(act_window, text='Clear', command = clear_rect).grid(row=len(activity_list)+1,column=2,sticky=tk.S+tk.W+tk.E)
+# Save manage modifications
+def save_manage():
 	global H, Entry_list, Timeline, day, day_list
 	"""
 	(1)	While there is activity:
@@ -418,7 +451,7 @@ def update_note_hour_list(note_list, note, hour):
 		return True
 	else :
 		return False
-# Save note in add_activities()
+# Save note in manage()
 def save_hour_note():
 	global H, note, oldNote_list
 	"""
@@ -426,7 +459,7 @@ def save_hour_note():
 	(2)	Open note_save_file
 	(3) Open note_save_file in read mode
 	(4)	Get the content of the note widget
-		in add_activities() -> newNote
+		in manage() -> newNote
 	(5)	Get note_save_file content -> oldNote_list 
 	(6)	Find the index H in oldNote_list 
 		add newNote after index H
@@ -484,51 +517,52 @@ def next_hour():
 	global H, act_window
 	act_window.destroy()
 	H += 1
-	add_activities()
+	manage()
 def previous_hour():
 	global H, act_window
 	act_window.destroy()
 	H -= 1
-	add_activities()
-
+	manage()
 def next_day():
-	global act_window, day_list, act_day, relative_day, save_file, day
+	global act_day, relative_day, launched, act_window
 	relative_day = int(act_day[:3]) +1 
 	relative_day = str(relative_day) + '.txt'
 	clear_timeline()
 	update_Hour_list(relative_day)
 	update_Timeline()
 	act_day = relative_day[:3]
+	if relative_day != get_day_txt(): 
+		launched = 'o'
+	else :
+		launched = 1
+	act_window.destroy()
+	manage()
 def previous_day():
-	global act_window, day_list, act_day, relative_day, save_file, day
+	global act_day, relative_day, launched, act_window
 	relative_day = int(act_day[:3]) -1
 	relative_day = str(relative_day) + '.txt'
 	clear_timeline()
 	update_Hour_list(relative_day)
 	update_Timeline()
 	act_day = relative_day[:3]
-
+	if relative_day != get_day_txt(): 
+		launched = 'o'
+	else :
+		launched = 1
+	act_window.destroy()
+	manage()
 def space_jump(eventorigin):
 	global note
 	E = '     '
 	note.insert('insert',E)
 # Return the save_file name of the day
-def make_save_file():
+def get_day_txt():
 	local = time.localtime()
 
 	text = ''
 	FileName = str(local.tm_yday) + '.txt'
 
 	return FileName
-# Return the note_save_file name of the day
-def make_note_save_file():
-	
-	local = time.localtime()
-
-	text = ''
-	noteFile = str(local.tm_yday) + '_Note.txt'
-
-	return noteFile
 def get_all_save():
 	global activity_list, save_file, save_note, day_list
 	dDay = [[0]*int(len(activity_list)+1)]*24
@@ -609,7 +643,7 @@ save_note = []
 day = []
 day_list = []
 note_list = []
-activity_list = ["Cig","Code","Multimedia","Maison",\
+activity_list = ["Cig","Code","Multimedia","Housing",\
 				"Friend",'Income',"Outcome","Game",\
 				'Work']
 
