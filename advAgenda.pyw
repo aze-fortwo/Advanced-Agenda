@@ -109,8 +109,8 @@ def set_save_file():
 	global save_file, act_day, launched
 	"""
 		(1)	Get the save_file name of the day
-		(2) check_save()
-		(3)	save_Hour_list()
+		(2) read_save_file()
+		(3)	write_save_day()
 
 	"""
 	dayfile = get_day_txt()	#(1)
@@ -120,16 +120,16 @@ def set_save_file():
 	value = 0
 	while i < len(save_file):
 		if save_file[i] == dayfile and launched == 0:
-			check_save()									#(2)
+			read_save_file()									#(2)
 			value = 1
 		i += 1		
 	
 	if value != 1 and launched == 0:
 		file = io.open(dayfile, encoding='utf-8',mode='w')	
 		file.close()
-		save_Hour_list()									#(3)
+		write_save_day()									#(3)
 # Write in save_file the day data
-def save_Hour_list():
+def write_save_day():
 	global  day, activity_list, day_list
 	"""
 	(1)	Actual hour
@@ -140,7 +140,7 @@ def save_Hour_list():
 		and write the activity hour
 	(6) Write the rest of activity value of the hour 'i'
 	(7)	Update the all day_list with new modification
-	(8) Check_save()
+	(8) read_save_file()
 	"""
 
 	local = time.localtime()		#(1)
@@ -176,22 +176,21 @@ def save_Hour_list():
 	
 	file.close()
 	day_list = get_all_save()						#(7)
-	check_save() 									#(8)
+	read_save_file() 									#(8)
 # Read save_file and note_save_file for updating day
-def check_save():
+def read_save_file():
 	global note_list
-	
 	#If this is the first launch
 	if launched == 0:
 		# Get the last day
 		FileName = get_day_txt()
 		# Update global day with this file content
-		update_Hour_list(FileName)
+		update_list(FileName)
 	# Update visual timeline
 	update_Timeline()
 	
 	# Make note file save
-	noteFile = FileName[:3] + '_Note.txt'
+	noteFile = get_day_txt()[:3] + '_Note.txt'
 
 	# if no note save file already exist
 	if os.path.exists(noteFile) == False:
@@ -219,11 +218,11 @@ def check_save():
 				save = text_list[i]
 				# Check if note isn't already like that 
 				# If not, update it
-				update_note_hour_list(note_list, save,int(text_list[i-1]))
+				update_note_list(note_list, save,int(text_list[i-1]))
 			i += 1
 		fichier.close()
 # Get save from file and update day with it
-def update_Hour_list(FileName):
+def update_list(FileName):
 	global activity_list, day
 	
 	# Open the save_file
@@ -283,7 +282,6 @@ def update_Timeline():
 				# We get how much pixels from total seconds
 				pos *= 3
 				tot = 0
-				
 				# Get activity cumul of the hour
 				k = 0
 				while k < len(function_list):
@@ -291,7 +289,7 @@ def update_Timeline():
 					k += 1
 
 				# Is activity_cumul > 60 ?
-				if tot > 60:
+				if tot <= 60:
 					Timeline.create_rectangle(pos1+1,17,pos1+pos-1,59, outline=color[j],\
 							fill=color[j])
 					pos1 += pos 
@@ -327,12 +325,13 @@ def select_rect(eventorigin):
 		day_resume()	
 # Menu for adding activity
 def manage():
-	global H, day, Entry_list, note, activity_list, note_list, act_window, launched
+	global H, day, Entry_list, note, activity_list, note_list, manage_window, launched
 	"""
-	(1)	act_window:		Window for activity modification
+	(1)	manage_window:		Window for activity modification
 	(2)	panneau:		Stock Entry and Label
 	(3)	function_list:	Stock hour H activities
 	(4)	Entry_list:		Stock Entry for save_manage_hour()
+	
 	Create a new window
 	Put a frame on the left side of it		
 			note_list:		Sock  notes
@@ -341,24 +340,26 @@ def manage():
 	(7) If note is not empty, make it appear on the note widget
 	(8)	Get day data in function_list
 	(9)	while activities left:
+	
 			(1)	Write activity name in the frame
 			(2)	Put an entry next to the act_name
 			(3)	Add this entry to Entry_list
 			(4) Insert the activity value in the
 				corresponding entry
 			(5) Grid the Entry
+	
 	(10)	Create save, quit, next, previous, clear button and
 			grid them below the last Entry
 	"""
-	act_window = tk.Toplevel()		#(1)
-	act_window.title('Hour: {}'.format(H))		#(2)
-	panneau = tk.Frame(act_window, width=165, height = 195).grid(row=0,column=0,columnspan=3,rowspan=7)
-	act_window.resizable(False, False)
+	manage_window = tk.Toplevel()		#(1)
+	manage_window.title('Hour: {}'.format(H))		#(2)
+	panneau = tk.Frame(manage_window, width=165, height = 195).grid(row=0,column=0,columnspan=3,rowspan=7)
+	manage_window.resizable(False, False)
 	
 	function_list =[]	#(3)
 	Entry_list = []		#(4)
 
-	note = tk.Text(act_window, width=25, height=18, wrap=tk.WORD) #(5)
+	note = tk.Text(manage_window, width=25, height=18, wrap=tk.WORD) #(5)
 	note.bind("<KeyPress-Tab>", space_jump)	#(6)
 	Note = note_list[H]		
 	if len(Note) >= 1:		#(7)
@@ -375,11 +376,12 @@ def manage():
 
 	while i < len(activity_list):		#(9)
 		value = str(function_list[i]) 						#(1)
-		tk.Label(act_window,parent = panneau, text=activity_list[i], justify=tk.LEFT).grid(row=rowi,column=0, sticky=tk.N)
+		tk.Label(manage_window,parent = panneau, text=activity_list[i], justify=tk.LEFT).grid(row=rowi,column=0, sticky=tk.N)
+		# If this is not an old save display
 		if launched != 'o':
-			En = tk.Entry(act_window,parent = panneau, width=5) #(2)
+			En = tk.Entry(manage_window,parent = panneau, width=5) #(2)
 		else:
-			En = tk.Entry(act_window,parent = panneau, width=5) #(2)
+			En = tk.Entry(manage_window,parent = panneau, width=5) #(2)
 		Entry_list.append(En) 								#(3)
 		Entry_list[i].insert(0,value) 						#(4)
 		Entry_list[i].grid(row=rowi,column=1, sticky=tk.N)  #(5)
@@ -388,23 +390,23 @@ def manage():
 	
 	#(10)
 	note.grid(row=0, column=2,rowspan = len(activity_list),columnspan=5, sticky=tk.E)
-	tk.Button(act_window, text = 'Quit', command=act_window.destroy).grid(row=len(activity_list)+1,column=1,sticky=tk.S+tk.W+tk.E)
-	tk.Button(act_window, text='<<', command =previous_day ).grid(row=len(activity_list)+1, column=3, sticky=tk.S+tk.E+tk.W)
-	tk.Button(act_window, text='<', command =previous_hour ).grid(row=len(activity_list)+1, column=4, sticky=tk.S+tk.E+tk.W)
-	tk.Button(act_window, text='>', command =next_hour ).grid(row=len(activity_list)+1, column=5, sticky=tk.S+tk.W+tk.E)
-	tk.Button(act_window, text='>>', command =next_day ).grid(row=len(activity_list)+1, column=6, sticky=tk.S+tk.W+tk.E)
+	tk.Button(manage_window, text = 'Quit', command=manage_window.destroy).grid(row=len(activity_list)+1,column=1,sticky=tk.S+tk.W+tk.E)
+	tk.Button(manage_window, text='<<', command =previous_day ).grid(row=len(activity_list)+1, column=3, sticky=tk.S+tk.E+tk.W)
+	tk.Button(manage_window, text='<', command =previous_hour ).grid(row=len(activity_list)+1, column=4, sticky=tk.S+tk.E+tk.W)
+	tk.Button(manage_window, text='>', command =next_hour ).grid(row=len(activity_list)+1, column=5, sticky=tk.S+tk.W+tk.E)
+	tk.Button(manage_window, text='>>', command =next_day ).grid(row=len(activity_list)+1, column=6, sticky=tk.S+tk.W+tk.E)
 	if launched != 'o':
-		tk.Button(act_window, text='Save', command= save_manage, highlightcolor='grey').grid(row=len(activity_list)+1,column=0,sticky=tk.S+tk.W+tk.E)
-		tk.Button(act_window, text='Clear', command = clear_rect).grid(row=len(activity_list)+1,column=2,sticky=tk.S+tk.W+tk.E)
+		tk.Button(manage_window, text='Save', command= save_manage, highlightcolor='grey').grid(row=len(activity_list)+1,column=0,sticky=tk.S+tk.W+tk.E)
+		tk.Button(manage_window, text='Clear', command = clear_rect).grid(row=len(activity_list)+1,column=2,sticky=tk.S+tk.W+tk.E)
 # Save manage modifications
 def save_manage():
-	global H, Entry_list, Timeline, day, day_list
+	global H, Entry_list, Timeline, day
 	"""
 	(1)	While there is activity:
-			Update day[Hour] with the Entry value
+			Update day[Hour] with the Entry value from manage window
 	(2)	Reset the Hour on graphical timeline for re-drawing
-	(3)	save_hour_note():	Write note in note file
-	(4)	save_hour_list():	Write save in save file
+	(3)	write_save_note():	Write note in note file
+	(4)	write_save_day():	Write save in save file
 	"""
 	i = 0
 	while i < len(activity_list):	#(1)
@@ -415,8 +417,9 @@ def save_manage():
 	Timeline.create_rectangle(x,16,x+36,60,state='normal',\
 				outline='white', fill='grey', tag='del_rect') #(2)
 
-	save_hour_note()	#(3)
-	save_Hour_list()	#(4)
+	write_save_note()	#(3)
+	write_save_day()	#(4)
+# Display sum of activity from actual day
 def day_resume():
 	global day_list, activity_list, day
 	cumul = [0] * int(len(activity_list)+1)
@@ -445,14 +448,15 @@ def day_resume():
 			txt = cumul[i]
 		tk.Label(resume_window, text=txt).grid(row=i, column=1)
 		i += 1
-def update_note_hour_list(note_list, note, hour):
+# Get save from file and update day note with it
+def update_note_list(note_list, note, hour):
 	if note_list[hour] != str(note):
 		note_list[hour] = str(note)
 		return True
 	else :
 		return False
-# Save note in manage()
-def save_hour_note():
+# Save note in manage window
+def write_save_note():
 	global H, note, oldNote_list
 	"""
 	(1)	Create note_save_file
@@ -467,7 +471,10 @@ def save_hour_note():
 	(8)	Erase old note_save_file and write newNote_list in it
 	"""
 
-	filename = make_note_save_file()		#(1)
+	notefile = get_day_txt()		#(1)
+	# Make note file save
+	filename = notefile[:3] + '_Note.txt'
+
 	newNote = str(note.get(0.0, index2=tk.END))	#(2)
 	infile = io.open(filename, encoding='utf-8', mode='r')	#(3)
 	text = infile.read()		
@@ -487,70 +494,114 @@ def save_hour_note():
 	newNote_list = str('¤'.join(oldNote_list))	#(7)
 	infile.write(newNote_list)	#(8)
 	infile.close()
+# Clean the hour rect and delete hour activity
 def clear_rect():
 	global H, Timeline, Entry_list, note
+
+	# Set the activity data at 0 for the hour H
 	i = 0
 	while i < len(activity_list):
 		if i != 0:
 			day[H][i] = 0
 		i += 1
+	# Get the position of the hour rect in timeline
 	x = int(H * 36)
+	# Create a grey rect on top of it
 	Timeline.create_rectangle(x,16,x+36,60,state='normal',\
 				outline='white', fill='grey', tag='del_rect')
 	i = 0
+
+	# Clear the entry data in manage window
 	while i < len(Entry_list):
 		Entry_list[i].delete(0, last=100)
 		Entry_list[i].insert(0,'0')
 		i += 1
-
+	# Clear the note in manage window
 	note.delete(0.0, index2=tk.END)
+# Repeat clear_rect for the 24h
 def clear_timeline():
 	global H
+	# H is global so take it's old value
 	save = H
+	# For the 24 hour
 	i = 0
 	while i < 24:
 		H = i
-		clear_rect()
+		clear_rect() # Clear hour [i]
 		i += 1
+	# Set to H his old value
 	H = save
+# '>' button in manage window
 def next_hour():
-	global H, act_window
-	act_window.destroy()
+	global H, manage_window
+	# Close the manage window of the actual hour
+	manage_window.destroy()
+	# Increment actual hour 
 	H += 1
+	# Open manage window with updated hour
 	manage()
+# '<' button in manage window
 def previous_hour():
-	global H, act_window
-	act_window.destroy()
+	global H, manage_window
+	# Close the manage window of the actual hour
+	manage_window.destroy()
+	# Decrease actual hour 
 	H -= 1
+	# Open manage window with updated hour
 	manage()
+# '>>' button in manage window
 def next_day():
-	global act_day, relative_day, launched, act_window
+	global act_day, relative_day, launched, manage_window
+	# Actual day of the year (Ex: 255/365, 256 = relative_day)
+	# incremented of 1
 	relative_day = int(act_day[:3]) +1 
 	relative_day = str(relative_day) + '.txt'
+	# Clear all hour rect for drawing
 	clear_timeline()
-	update_Hour_list(relative_day)
+	# Read relative_day file and upsate global day with it
+	update_list(relative_day)
+	# Draw the day + 1
 	update_Timeline()
+	# Set the actual day(the day wich is displayed) as 256
 	act_day = relative_day[:3]
+	# If the day+1 is not today
 	if relative_day != get_day_txt(): 
+		# Mark the actual display as old
+		# For prevent saving in old files
 		launched = 'o'
 	else :
+		# Set the saving possible for today
 		launched = 1
-	act_window.destroy()
+	# Destroy then create new window for updating content inside
+	manage_window.destroy()
 	manage()
+# '<<' button in manage window
 def previous_day():
-	global act_day, relative_day, launched, act_window
-	relative_day = int(act_day[:3]) -1
+	global act_day, relative_day, launched, manage_window
+	# Actual day of the year (Ex: 255/365, 256 = relative_day)
+	# incremented of 1
+	relative_day = int(act_day[:3]) - 1 
 	relative_day = str(relative_day) + '.txt'
+	# Clear all hour rect for drawing
 	clear_timeline()
-	update_Hour_list(relative_day)
+	# Read relative_day file and upsate global day with it
+	update_list(relative_day)
+	# Draw the day + 1
 	update_Timeline()
+	# Set the actual day(the day wich is displayed) as 256
 	act_day = relative_day[:3]
+	# If the day+1 is not today
 	if relative_day != get_day_txt(): 
+		# Mark the actual display as old
+		# For prevent saving in old files
 		launched = 'o'
 	else :
+		# Set the saving possible for today
 		launched = 1
-	act_window.destroy()
+	# Destroy then create new window for updating content inside
+	manage_window.destroy()
 	manage()
+# Shortkey for tab = '     ' 
 def space_jump(eventorigin):
 	global note
 	E = '     '
@@ -563,77 +614,71 @@ def get_day_txt():
 	FileName = str(local.tm_yday) + '.txt'
 
 	return FileName
+# Read all the save_file and save it in day_list
 def get_all_save():
-	global activity_list, save_file, save_note, day_list
+	global activity_list, save_file, save_note, day, day_list
+	saveDay = day
+	# Used for copying saved day into day_list 1 by 1
 	dDay = [[0]*int(len(activity_list)+1)]*24
+	# day_list[day][hour]
 	day_list = []
+	# Listing of all the file (note and save)
 	save_file = list()
 	save_note = list()
 
+	# While there is save in the working directory
 	for folder in os.listdir('.'):
+		# The save folder are minimum:'1.txt' to '365.txt' so [0;7]
 		if len(folder) <= 7:
-			if folder != '' and folder != 'advAgenda.pyw'and folder != '.git'\
-			and folder != 'README.md':
+			if folder != '' and folder != '.git':
+				# If the file isn't GitHub directory
+				# Add it to the save_file list
 				save_file.append(folder)
-
+		# So it can be a note save_file
 		else:
 			if folder != '' and folder != 'advAgenda.pyw'and folder != '.git'\
-			and folder != 'README.md':
+			and folder != 'README.md' and folder != 'test.txt':
+				# If it is, save it in save_note
 				save_note.append(folder)
 
 	i = 0
+	# While there is save_file to read
 	while i < len(save_file):
-		ofi = open(save_file[i], 'r')
-		ofi.readline()
-		ofi.readline()
-		j = 0
-		while j < 24:
-			brutline = ofi.readline()
-			line = brutline.split(' ')
-			base = line[0]
-			line[0] = save_file[i][:3]+'.'+base
-			k = 0
-			while k < len(line):
-				if line[k] == '\n':
-					del line[k]
-					break
-				if line[k] == '':
-					del line[k]
-				k += 1
-			dDay[j] = line
-			j += 1
-		day_list.append(dDay)
+		update_list(save_file[i])
+		day_list.append(day)
 		i += 1
+	day = saveDay
 	return day_list
-def make_stats(day_list):
-	global activity_list
-	cumul_list = [0]* int(len(activity_list)+1)
-	print(cumul_list)
-	print(day_list[0][23])
+	
+# Set the environment for accessing every data of the day_list
+def make_stats():
+	global activity_list, day_list
+	cumul_list = [0]* int(len(activity_list))
+	
 	i = 0
+	# While there is day
 	while i < len(day_list):
 		j = 0
-		while j < len(day_list[i]):
-			
-			k = 0
-			while k < len(day_list[i][j]):
-				if day_list[i][j][k] == '\n':
-					del day_list[i][j][k]
-					break
-				elif day_list[i][j][k] == '':
-					del day_list[i][j][k] 
-					break
-				k += 1
-			
-			k = 0
-			while k < len(day_list[i][j]):
-				base = cumul_list[k]
-				base += int(day_list[i][j][k])
-				cumul_list[k] = base
+		# While there is hour in a day
+		while j < 23:
+			#k = 1 because day_list[i][j][0] == (tm_yday.txt) and cumul
+			# list do not want that in his maths
+			k = 1
+			# Repeat for every activity + the tm_yday code at day_list[0]
+			while k < len(activity_list)+1:
+				# [k - 1] because len(activity_list) + 1 have one more index 
+				# than cumul list, so when k = 2 -> cumul_list[1]
+				cumul_list[k-1] += int(day_list[i][j][k])
+
 				k += 1
 			j += 1
 		i += 1
 
+	print(cumul_list)
+
+	i = 0
+	while i < len(activity_list):
+		i += 1
 
 
 Time_stampX = 0 
@@ -648,14 +693,17 @@ activity_list = ["Cig","Code","Multimedia","Housing",\
 				'Work']
 
 
-make_day()
-day_list = get_all_save()
 
 fen = tk.Tk()
+
+make_day()
+get_all_save()
+
+make_stats()
+
 fen.resizable(False, False)
 fen.title('Everyday')
 make_TimeLine(fen)		# Créer la ligne visuelle
-
 screen_width = fen.winfo_screenwidth()
 screen_height = fen.winfo_screenheight()
 
