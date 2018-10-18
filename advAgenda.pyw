@@ -6,35 +6,81 @@ import io
 import os
 
 
-global day, activity_list, note_list, day_list, save_file, save_note, launched
+global day, activity_list, day_list, launched
+
 launched = 0
+
+# Return the save_file name of the day
+def get_day_txt():
+	local = time.localtime()
+
+	text = ''
+	FileName = str(local.tm_yday) + '.txt'
+
+	return FileName
 # Create list with 24 index with len(activity_list)+1 index
 def make_day():
+	global day, activity_list
 	# Create an empty day_list without hour index
 	# at the start of the hour line
-	global day
-	
+	width = len(activity_list) + 1
+	height = 24
 	day = []
-
-	i = 0
-	while i < 24:
-		day.append([[0]*int(len(activity_list)+1)])
-		note_list.append('')
-		i += 1
-
+	for i in range(height):
+		day.append([0]*width)
 	# Write hour h at the start of the hour line
-	i = 0
-	while i < len(day):
-		j = 0
+	for i, hour in enumerate(day):
 		tab = [i]
-		while j < len(activity_list):
+		for j in activity_list:
 			tab.append(0)
-			j += 1
 		day[i] = tab
-		i += 1
+# Read all the save_file and save it in day_list
+def get_all_save():
+	global save_file, save_note
+	exclude_file = ['test.py','advAgenda.pyw','README.md','.git','.gitignore']
+
+	save_file = [x for x in os.listdir('.') if x not in exclude_file]
+
+	width = len(activity_list) + 1
+	height = 24
+	day_list = [[[0]*width]*height]*len(save_file)
+	cumul_list = [0]*int(len(activity_list)+1)
+
+	# For the save file
+	for z,file in enumerate(save_file):
+		# If it's note a note_save
+		if len(file) <= 7:
+			# Open it reading mode
+			with open(file,'r') as save_files:
+				# read all from the third line 
+				save_lines = save_files.readlines()[2:]
+				# For every line ine the file
+				for i, line in enumerate(save_lines):	
+					# Delete '\n' and ' '
+					line = line.replace('\n', '')
+					# Convert to list
+					line = line.split(' ')
+					# delete empty index (might be two in a row)
+					if line[-1] == "":
+						del line[-1]
+						if line[-1] == "":
+							del line[-1]
+					# Save the data in the all_data_list
+					day_list[z][i] = line
+					
+					for j,value in enumerate(line):
+						cumul_list[j] += int(value)
+
+		elif len(file) >= 7:
+			save_note.append(file)
+
+	for value,activity in enumerate(activity_list):
+		print(activity_list[value], cumul_list[int(value+1)])
+
+	return day_list
 # Visual Timeline
 def make_TimeLine(fen):
-	global Timeline, Marker, launched
+	global Timeline
 	"""
 		Timeline: 	Visual Timeline
 		Time_stamp:	Actual hour orange line
@@ -106,31 +152,27 @@ def time_marker():
 	fen.after(180000,time_marker)
 # Make or load the save_file & note_save_file of the day
 def set_save_file():
-	global save_file, act_day, launched
-	"""
-		(1)	Get the save_file name of the day
-		(2) read_save_file()
-		(3)	write_save_day()
+	global act_day
 
-	"""
-	dayfile = get_day_txt()	#(1)
+	dayfile = get_day_txt()	
 	act_day = dayfile[:3]
 
 	i = 0
 	value = 0
 	while i < len(save_file):
 		if save_file[i] == dayfile and launched == 0:
-			read_save_file()									#(2)
+			read_save_file()									
 			value = 1
 		i += 1		
 	
 	if value != 1 and launched == 0:
 		file = io.open(dayfile, encoding='utf-8',mode='w')	
 		file.close()
-		write_save_day()									#(3)
+		write_save_day()									
 # Write in save_file the day data
 def write_save_day():
 	global  day, activity_list, day_list
+
 	"""
 	(1)	Actual hour
 	(2) Write file creation on top of save_file
@@ -139,8 +181,7 @@ def write_save_day():
 	(5) At every start of line set a '\n'
 		and write the activity hour
 	(6) Write the rest of activity value of the hour 'i'
-	(7)	Update the all day_list with new modification
-	(8) read_save_file()
+	(7) read_save_file()
 	"""
 
 	local = time.localtime()		#(1)
@@ -165,18 +206,18 @@ def write_save_day():
 	while i < 24:									#(3)
 		j = 0
 		while j < len(activity_list)+1:				#(4)
-			if j == 0:		
+			if j == 0:
 				text ='\n' + str(day[i][j]) + ' '	#(5)
 				file.write(text)
 			else:
 				text = str(day[i][j]) + ' '			#(6)
 				file.write(text)
+
 			j += 1
 		i += 1
 	
 	file.close()
-	day_list = get_all_save()						#(7)
-	read_save_file() 									#(8)
+	read_save_file() 									#(7)
 # Read save_file and note_save_file for updating day
 def read_save_file():
 	global note_list
@@ -185,10 +226,11 @@ def read_save_file():
 		# Get the last day
 		FileName = get_day_txt()
 		# Update global day with this file content
-		update_list(FileName)
+		day = update_list(FileName)
 	# Update visual timeline
 	update_Timeline()
 	
+	note_list = ['']*24
 	# Make note file save
 	noteFile = get_day_txt()[:3] + '_Note.txt'
 
@@ -218,7 +260,7 @@ def read_save_file():
 				save = text_list[i]
 				# Check if note isn't already like that 
 				# If not, update it
-				update_note_list(note_list, save,int(text_list[i-1]))
+				note_list = update_note_list(note_list, save,int(text_list[i-1]))
 			i += 1
 		fichier.close()
 # Get save from file and update day with it
@@ -246,6 +288,13 @@ def update_list(FileName):
 				day[i][j] = save_list[j]
 			j += 1
 		i += 1
+	return day
+	fichier.close()
+# Get save from file and update day note with it
+def update_note_list(note_list, note, hour):
+	if note_list[hour] != str(note):
+		note_list[hour] = str(note)
+	return note_list
 # Update visual timeline
 def update_Timeline():	
 	global activity_list, day, launched
@@ -290,7 +339,7 @@ def update_Timeline():
 
 				# Is activity_cumul > 60 ?
 				if tot <= 60:
-					Timeline.create_rectangle(pos1+1,17,pos1+pos-1,59, outline=color[j],\
+					Timeline.create_rectangle(pos1+1,17,pos1-1+pos,59, outline=color[j],\
 							fill=color[j])
 					pos1 += pos 
 				else:
@@ -325,7 +374,7 @@ def select_rect(eventorigin):
 		day_resume()	
 # Menu for adding activity
 def manage():
-	global H, day, Entry_list, note, activity_list, note_list, manage_window, launched
+	global manage_window, H, day, Entry_list, note, note_list, launched
 	"""
 	(1)	manage_window:		Window for activity modification
 	(2)	panneau:		Stock Entry and Label
@@ -421,17 +470,17 @@ def save_manage():
 	write_save_day()	#(4)
 # Display sum of activity from actual day
 def day_resume():
-	global day_list, activity_list, day
+	global activity_list, day
 	cumul = [0] * int(len(activity_list)+1)
 	resume_window = tk.Toplevel()
 	resume_window.title('Daily resume')
 	j = 0
 	while j < 24:		
 		k = 0
-		while k < len(day_list[-1][j]):
+		while k < len(day[j]):
 			if k != 0:
 				base = int(cumul[k-1])
-				base += int(day_list[-1][j][k])
+				base += int(day[j][k])
 				cumul[k-1] = base
 			k += 1			
 
@@ -448,13 +497,6 @@ def day_resume():
 			txt = cumul[i]
 		tk.Label(resume_window, text=txt).grid(row=i, column=1)
 		i += 1
-# Get save from file and update day note with it
-def update_note_list(note_list, note, hour):
-	if note_list[hour] != str(note):
-		note_list[hour] = str(note)
-		return True
-	else :
-		return False
 # Save note in manage window
 def write_save_note():
 	global H, note, oldNote_list
@@ -606,105 +648,24 @@ def space_jump(eventorigin):
 	global note
 	E = '     '
 	note.insert('insert',E)
-# Return the save_file name of the day
-def get_day_txt():
-	local = time.localtime()
-
-	text = ''
-	FileName = str(local.tm_yday) + '.txt'
-
-	return FileName
-# Read all the save_file and save it in day_list
-def get_all_save():
-	global activity_list, save_file, save_note, day, day_list
-	saveDay = day
-	# Used for copying saved day into day_list 1 by 1
-	dDay = [[0]*int(len(activity_list)+1)]*24
-	# day_list[day][hour]
-	day_list = []
-	# Listing of all the file (note and save)
-	save_file = list()
-	save_note = list()
-
-	# While there is save in the working directory
-	for folder in os.listdir('.'):
-		# The save folder are minimum:'1.txt' to '365.txt' so [0;7]
-		if len(folder) <= 7:
-			if folder != '' and folder != '.git':
-				# If the file isn't GitHub directory
-				# Add it to the save_file list
-				save_file.append(folder)
-		# So it can be a note save_file
-		else:
-			if folder != '' and folder != 'advAgenda.pyw'and folder != '.git'\
-			and folder != 'README.md' and folder != 'test.txt':
-				# If it is, save it in save_note
-				save_note.append(folder)
-
-	i = 0
-	# While there is save_file to read
-	while i < len(save_file):
-		update_list(save_file[i])
-		day_list.append(day)
-		i += 1
-	day = saveDay
-	return day_list
-	
-# Set the environment for accessing every data of the day_list
-def make_stats():
-	global activity_list, day_list
-	cumul_list = [0]* int(len(activity_list))
-	
-	i = 0
-	# While there is day
-	while i < len(day_list):
-		j = 0
-		# While there is hour in a day
-		while j < 23:
-			#k = 1 because day_list[i][j][0] == (tm_yday.txt) and cumul
-			# list do not want that in his maths
-			k = 1
-			# Repeat for every activity + the tm_yday code at day_list[0]
-			while k < len(activity_list)+1:
-				# [k - 1] because len(activity_list) + 1 have one more index 
-				# than cumul list, so when k = 2 -> cumul_list[1]
-				cumul_list[k-1] += int(day_list[i][j][k])
-
-				k += 1
-			j += 1
-		i += 1
-
-	print(cumul_list)
-
-	i = 0
-	while i < len(activity_list):
-		i += 1
 
 
-Time_stampX = 0 
-SaveH = 0
-save_file = []
-save_note = []
-day = []
-day_list = []
-note_list = []
+
 activity_list = ["Cig","Code","Multimedia","Housing",\
 				"Friend",'Income',"Outcome","Game",\
 				'Work']
-
-
+save_file = []
+save_note = []
+make_day()
+day_list = get_all_save()
 
 fen = tk.Tk()
-
-make_day()
-get_all_save()
-
-make_stats()
-
 fen.resizable(False, False)
 fen.title('Everyday')
 make_TimeLine(fen)		# Créer la ligne visuelle
+
 screen_width = fen.winfo_screenwidth()
+
 screen_height = fen.winfo_screenheight()
 
 x = (screen_width/2)-(863/2)
