@@ -5,19 +5,16 @@ import tkinter as tk
 import io
 import os
 
-
+"""
+	day: List of [24*[len(activity_list)+1]] ,save data of today
+	activity_list: Element in manage window
+	day_list: Save all the past day day_list = [day][hour][activity]
+	launched : Tell if it's the first launch for modification
+"""
 global day, activity_list, day_list, launched
 
 launched = 0
 
-# Return the save_file name of the day
-def get_day_txt():
-	local = time.localtime()
-
-	text = ''
-	FileName = str(local.tm_yday) + '.txt'
-
-	return FileName
 # Create list with 24 index with len(activity_list)+1 index
 def make_day():
 	global day, activity_list
@@ -37,7 +34,7 @@ def make_day():
 # Read all the save_file and save it in day_list
 def get_all_save():
 	global save_file, save_note
-	exclude_file = ['test.py','advAgenda.pyw','README.md','.git','.gitignore']
+	exclude_file = ['advAgenda.pyw','README.md','.git','.gitignore']
 
 	save_file = [x for x in os.listdir('.') if x not in exclude_file]
 
@@ -65,17 +62,35 @@ def get_all_save():
 						del line[-1]
 						if line[-1] == "":
 							del line[-1]
+					if line[0] =="":
+						del line[0]
 					# Save the data in the all_data_list
 					day_list[z][i] = line
 					
 					for j,value in enumerate(line):
 						cumul_list[j] += int(value)
-
+			save_files.close()
 		elif len(file) >= 7:
 			save_note.append(file)
 
-	for value,activity in enumerate(activity_list):
-		print(activity_list[value], cumul_list[int(value+1)])
+	percentage_list = [0]*int(len(activity_list)+1)
+	tot = 0
+	exclude = [0,1,6,7]
+	print_exclude = [0,5,6]
+
+	for i, value in enumerate(cumul_list) :
+		if i not in exclude:
+			tot += value
+	
+	for i, value in enumerate(cumul_list):
+		if i not in exclude:
+			percentage_list[i-1] = (cumul_list[i]/tot)*100
+
+	for i,activity in enumerate(activity_list):
+		txt = activity_list[i] +': '+ str(cumul_list[int(i+1)]) 
+		if i not in print_exclude:
+			txt +='\t' + str('%.2f' % percentage_list[i]) + '%'
+		print(txt)
 
 	return day_list
 # Visual Timeline
@@ -122,6 +137,14 @@ def make_TimeLine(fen):
 	time_marker()
 	if launched == 0:
 		set_save_file()
+# Return the save_file name of the day
+def get_day_txt():
+	local = time.localtime()
+
+	text = ''
+	FileName = str(local.tm_yday) + '.txt'
+
+	return FileName
 # Display an indicator of actual time on Timeline
 def time_marker():	
 	"""
@@ -207,7 +230,7 @@ def write_save_day():
 		j = 0
 		while j < len(activity_list)+1:				#(4)
 			if j == 0:
-				text ='\n' + str(day[i][j]) + ' '	#(5)
+				text ='\n ' + str(day[i][j]) + ' '			#(5)
 				file.write(text)
 			else:
 				text = str(day[i][j]) + ' '			#(6)
@@ -237,7 +260,7 @@ def read_save_file():
 	# if no note save file already exist
 	if os.path.exists(noteFile) == False:
 		# Create a new note file
-		file = io.open(noteFile,encoding='utf-8',mode='w+')
+		file = io.open(noteFile,encoding='utf-8',mode='w')
 		i = 0
 		# Write every Hour with '¤' between hour and note as ¤0¤Note¤1¤¤2¤...
 		while i < 24:		
@@ -265,7 +288,7 @@ def read_save_file():
 		fichier.close()
 # Get save from file and update day with it
 def update_list(FileName):
-	global activity_list, day
+	global activity_list
 	
 	# Open the save_file
 	fichier = open(FileName, 'r+')
@@ -280,6 +303,8 @@ def update_list(FileName):
 		j = 0
 		text = fichier.readline()
 		save_list = text.split(' ')
+		if save_list[0] == "":
+			del save_list[0]
 		# len(activity_list) +1 because of the hour at position 0 in day[i][0]
 		while j < len(activity_list)+1:
 			# If the actual saved data are outdated
@@ -288,8 +313,8 @@ def update_list(FileName):
 				day[i][j] = save_list[j]
 			j += 1
 		i += 1
-	return day
 	fichier.close()
+	return day
 # Get save from file and update day note with it
 def update_note_list(note_list, note, hour):
 	if note_list[hour] != str(note):
@@ -306,14 +331,14 @@ def update_Timeline():
 	'tot' check if the total time of activity doesn't exceed 60 minutes (if multy activity for exemple)
 	"""
 	# Color added to the rectangle when draw
-	color = ['light blue', 'red',  'yellow', 'light green','purple','blue']
+	color = ['light blue', 'red',  'yellow', 'light green','purple','blue', 'dark blue']
 
 	i = 0
 	while i < 24:
 		
 		# All visual data needed are here
 		function_list = [int(day[i][2]), int(day[i][3]), int(day[i][4]),int(day[i][5]),\
-						int(day[i][8]),int(day[i][9])]
+						int(day[i][8]),int(day[i][9]), int(day[i][10])]
 
 		# Convert hour to pixels (1h=36 pixels)
 		pos1 = i*36
@@ -424,7 +449,9 @@ def manage():
 	rowi=0
 
 	while i < len(activity_list):		#(9)
-		value = str(function_list[i]) 						#(1)
+		value = str(function_list[i])	#(1)
+		if value == ' ' or value == '':
+			value = 0						
 		tk.Label(manage_window,parent = panneau, text=activity_list[i], justify=tk.LEFT).grid(row=rowi,column=0, sticky=tk.N)
 		# If this is not an old save display
 		if launched != 'o':
@@ -461,7 +488,6 @@ def save_manage():
 	while i < len(activity_list):	#(1)
 		day[H][i+1] = int(Entry_list[i].get())
 		i += 1
-
 	x = int(H * 36)
 	Timeline.create_rectangle(x,16,x+36,60,state='normal',\
 				outline='white', fill='grey', tag='del_rect') #(2)
@@ -651,9 +677,9 @@ def space_jump(eventorigin):
 
 
 
-activity_list = ["Cig","Code","Multimedia","Housing",\
+activity_list = ["Cig","Python","Passif","Housing",\
 				"Friend",'Income',"Outcome","Game",\
-				'Work']
+				'Work','Web-dev']
 save_file = []
 save_note = []
 make_day()
