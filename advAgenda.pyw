@@ -33,11 +33,11 @@ def make_day():
 		day[i] = tab
 # Read all the save_file and save it in day_list
 def get_all_save():
-	global save_file, save_note
-	exclude_file = ['advAgenda.pyw','README.md','.git','.gitignore']
+	global save_file, save_note, stat_list
+	exclude_file = ['advAgenda.pyw','README.md','.git','.gitignore',' all_save.txt', 'test.py']
 
 	save_file = [x for x in os.listdir('.') if x not in exclude_file]
-
+	stat_list = [0]*10
 	width = len(activity_list) + 1
 	height = 24
 	day_list = [[[0]*width]*height]*len(save_file)
@@ -52,31 +52,41 @@ def get_all_save():
 				# read all from the third line 
 				save_lines = save_files.readlines()[2:]
 				# For every line ine the file
-				for i, line in enumerate(save_lines):	
+				for i, line in enumerate(save_lines):
 					# Delete '\n' and ' '
 					line = line.replace('\n', '')
 					# Convert to list
 					line = line.split(' ')
 					# delete empty index (might be two in a row)
-					if line[-1] == "":
+					if line[-1] == "" and len(line)>1:
 						del line[-1]
 						if line[-1] == "":
 							del line[-1]
-					if line[0] =="":
-						del line[0]
 					# Save the data in the all_data_list
 					day_list[z][i] = line
-					
+					save = str(day_list[z][i][0])
+					if int(save) < 10:
+						save = '0'+save
+					day_list[z][i][0] = save + '.' + file[:3]
+					# Make cumul_list
 					for j,value in enumerate(line):
-						cumul_list[j] += int(value)
+						if j != 0:
+							cumul_list[j] += int(value)
+
 			save_files.close()
+
 		elif len(file) >= 7:
 			save_note.append(file)
 
+	stat_list[0] = cumul_list
+
+	percentage_day(day_list, 295)
+	return day_list
+
+def percentage_cumul(cumul_list):
 	percentage_list = [0]*int(len(activity_list)+1)
 	tot = 0
 	exclude = [0,1,6,7]
-	print_exclude = [0,5,6]
 
 	for i, value in enumerate(cumul_list) :
 		if i not in exclude:
@@ -84,15 +94,39 @@ def get_all_save():
 	
 	for i, value in enumerate(cumul_list):
 		if i not in exclude:
-			percentage_list[i-1] = (cumul_list[i]/tot)*100
+			percentage_list[i] = (cumul_list[i]/tot)*100
+	
+	stat_list[1] = percentage_list
+	return stat_list
 
-	for i,activity in enumerate(activity_list):
-		txt = activity_list[i] +': '+ str(cumul_list[int(i+1)]) 
-		if i not in print_exclude:
-			txt +='\t' + str('%.2f' % percentage_list[i]) + '%'
-		print(txt)
+def percentage_day(day_list, day_find):
+	day_percentage = [0]*int(len(activity_list)+1)
+	cumul_list = [0]*int(len(activity_list)+1)
+	tot = 0
+	exclude = [0,1,6,7]
 
-	return day_list
+	for i, day in enumerate(day_list):
+		for j, hour in enumerate(day_list[i]):
+			if day_find == int(hour[0][3:]):
+				save = i
+				break
+
+	for i, hour in enumerate(day_list[save]):
+		for j, value in enumerate(day_list[save][i]):
+			if j != 0:
+				cumul_list[j] += int(day_list[save][i][j])
+	
+	for i, value in enumerate(cumul_list) :
+		if i not in exclude:
+			tot += value
+
+	for i, value in enumerate(cumul_list):
+		if i not in exclude:
+			day_percentage[i] = (cumul_list[i]/tot)*100
+
+	for i, value in enumerate(day_percentage):
+		if i not in exclude:
+			print(activity_list[i-1],'\t%.2f' % value,'%')
 # Visual Timeline
 def make_TimeLine(fen):
 	global Timeline
@@ -146,7 +180,7 @@ def get_day_txt():
 
 	return FileName
 # Display an indicator of actual time on Timeline
-def time_marker():	
+def time_marker():
 	"""
 	Position of the red arker on top of timeline wich represent actual hour
 	1) Convert actual time (HH:MM:SS) to second from midnight
@@ -230,7 +264,10 @@ def write_save_day():
 		j = 0
 		while j < len(activity_list)+1:				#(4)
 			if j == 0:
-				text ='\n ' + str(day[i][j]) + ' '			#(5)
+				text ='\n' + str(day[i][j]) + ' '			#(5)
+				file.write(text)
+			elif j == len(activity_list)+1:
+				text =str(day[i][j])
 				file.write(text)
 			else:
 				text = str(day[i][j]) + ' '			#(6)
@@ -677,9 +714,9 @@ def space_jump(eventorigin):
 
 
 
-activity_list = ["Cig","Python","Passif","Housing",\
+activity_list = ["Cig","Python","Passif","House",\
 				"Friend",'Income',"Outcome","Game",\
-				'Work','Web-dev']
+				'Work','Webdev']
 save_file = []
 save_note = []
 make_day()
