@@ -77,12 +77,12 @@ def get_all_save():
 
 		elif len(file) >= 7:
 			save_note.append(file)
-
+	local = time.localtime()
+	nbrDay = local.tm_yday
 	stat_list[0] = cumul_list
-
-	percentage_day(day_list, 295)
+	percentage_cumul(cumul_list)
+	percentage_day(day_list, nbrDay)
 	return day_list
-
 def percentage_cumul(cumul_list):
 	percentage_list = [0]*int(len(activity_list)+1)
 	tot = 0
@@ -97,8 +97,12 @@ def percentage_cumul(cumul_list):
 			percentage_list[i] = (cumul_list[i]/tot)*100
 	
 	stat_list[1] = percentage_list
-	return stat_list
+	print('\n========All time data========')
+	for i, value in enumerate(percentage_list):
+		if i not in exclude:
+			print(activity_list[i-1],'\t%.2f' % value,'%')
 
+	return stat_list
 def percentage_day(day_list, day_find):
 	day_percentage = [0]*int(len(activity_list)+1)
 	cumul_list = [0]*int(len(activity_list)+1)
@@ -123,10 +127,12 @@ def percentage_day(day_list, day_find):
 	for i, value in enumerate(cumul_list):
 		if i not in exclude:
 			day_percentage[i] = (cumul_list[i]/tot)*100
-
+	print('\n========Today data========')
 	for i, value in enumerate(day_percentage):
 		if i not in exclude:
 			print(activity_list[i-1],'\t%.2f' % value,'%')
+
+	return day_percentage
 # Visual Timeline
 def make_TimeLine(fen):
 	global Timeline
