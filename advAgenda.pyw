@@ -33,9 +33,11 @@ def make_day():
 		day[i] = tab
 # Read all the save_file and save it in day_list
 def get_all_save():
-	global save_file, save_note
+	global save_file, save_note, stat_list
 	exclude_file = ['advAgenda.pyw','README.md','.git','.gitignore',' all_save.txt', 'test.py']
+
 	save_file = [x for x in os.listdir('.') if x not in exclude_file]
+	stat_list = [0]*10
 	width = len(activity_list) + 1
 	height = 24
 	day_list = [[[0]*width]*height]*len(save_file)
@@ -76,52 +78,15 @@ def get_all_save():
 		elif len(file) >= 7:
 			save_note.append(file)
 
-	if launched != 0:
-		make_stats(day_list, cumul_list)
-
-	return day_list
-def make_stats(day_list, cumul_list):
-	global stats_window
-
-	cumul = [0] * int(len(activity_list)+1)
-	exclude = [0,1,6,7]
-	stats_window = tk.Toplevel()
-	stats_window.title('Stats')
-
-	tk.Label(stats_window, text='All day').grid(row=0,column=3)
-	tk.Label(stats_window, text='Today').grid(row=0,column=1)
-
+	stat_list[0] = cumul_list
 	local = time.localtime()
 	day_find = local.tm_yday
-	day_percentage = percentage_day(day_list, day_find)
-	percentage_list = percentage_cumul(cumul_list)
+	if launched != 0:
+		percentage_day(day_list,day_find)
 
-	for i, value in enumerate(day_percentage):
-		if i not in exclude:
-			txt =str('%.2f' % value) + '%'
-			tk.Label(stats_window, text=txt).grid(row=i+1, column=2)
-			txt2 = str('%.2f' % percentage_list[i]) + '%'
-			tk.Label(stats_window, text=txt2).grid(row=i+1, column=3)
-	
-	for j in range(24):
-		for k, value in enumerate(day[j]):
-			if k != 0:
-				base = int(cumul[k-1])
-				base += int(day[j][k])
-				cumul[k-1] = base
-
-	for i, value in enumerate(cumul):
-		if i != 0:
-			tk.Label(stats_window, text=activity_list[i-1]).grid(row=i+1,column=0)
-		if i not in exclude:
-			txt = str(value) + 'min'
-			tk.Label(stats_window, text=txt).grid(row=i+1,column=1)
-		if i == 6 or i == 7:
-			txt = str(value) + '€'
-			tk.Label(stats_window, text=txt).grid(row=i+1,column=1)
+	return day_list
 
 def percentage_cumul(cumul_list):
-
 	percentage_list = [0]*int(len(activity_list)+1)
 	tot = 0
 	exclude = [0,1,6,7]
@@ -129,16 +94,20 @@ def percentage_cumul(cumul_list):
 	for i, value in enumerate(cumul_list) :
 		if i not in exclude:
 			tot += value
+	
 	for i, value in enumerate(cumul_list):
 		if i not in exclude:
-			percentage_list[i] = (cumul_list[i]/tot)*100	
+			percentage_list[i] = (cumul_list[i]/tot)*100
 	
-	return percentage_list
+	stat_list[1] = percentage_list
+	return stat_list
+
 def percentage_day(day_list, day_find):
 	day_percentage = [0]*int(len(activity_list)+1)
 	cumul_list = [0]*int(len(activity_list)+1)
 	tot = 0
 	exclude = [0,1,6,7]
+
 	for i, day in enumerate(day_list):
 		for j, hour in enumerate(day_list[i]):
 			if day_find == int(hour[0][3:]):
@@ -158,7 +127,9 @@ def percentage_day(day_list, day_find):
 		if i not in exclude:
 			day_percentage[i] = (cumul_list[i]/tot)*100
 
-	return day_percentage
+	for i, value in enumerate(day_percentage):
+		if i not in exclude:
+			print(activity_list[i-1],'\t%.2f' % value,'%')
 # Visual Timeline
 def make_TimeLine(fen):
 	global Timeline
@@ -339,22 +310,15 @@ def read_save_file():
 		file.close()
 	else:
 		# Read the note file save
-		fichier = io.open(noteFile,encoding='utf-8',mode ='r+')
-	
-		text = fichier.read()
-		# Split note from hour 
-		text_list = text.split('¤')
-		i = 0
-		while i < len(text_list):
-			# Every 2 element of the list and if the element is not the first one
-			if i != 0 and i % 2 == 0:
-				# Save the note content
-				save = text_list[i]
-				# Check if note isn't already like that 
-				# If not, update it
-				note_list = update_note_list(note_list, save,int(text_list[i-1]))
-			i += 1
-		fichier.close()
+		with open(noteFile,encoding='utf-8',mode ='r') as fichier:
+			text = fichier.read()
+			text_list = text.split('¤')
+			for i, value in enumerate(text_list):
+				# Every 2 element of the list and if the element is not the first one
+				if i != 0 and i % 2 == 0:
+					# Save the note content
+					save = text_list[i]
+					note_list = update_note_list(note_list, save,int(text_list[i-1]))
 # Get save from file and update day with it
 def update_list(FileName):
 	global activity_list
@@ -465,10 +429,10 @@ def select_rect(eventorigin):
 	H = int(x/36)
 	manage() 	
 	if H >= 20:
-		get_all_save()
+		day_resume()	
 # Menu for adding activity
 def manage():
-	global manage_window, H, day, Entry_list, note, note_list, launched
+	global manage_window, H, day, Entry_list, note, note_list, launched, act_day
 	"""
 	(1)	manage_window:		Window for activity modification
 	(2)	panneau:		Stock Entry and Label
@@ -504,6 +468,19 @@ def manage():
 
 	note = tk.Text(manage_window, width=25, height=18, wrap=tk.WORD) #(5)
 	note.bind("<KeyPress-Tab>", space_jump)	#(6)
+	
+	noteFile = act_day[:3] + '_Note.txt'
+	# Read the note file save
+	with open(noteFile,encoding='utf-8',mode ='r') as fichier:
+		text = fichier.read()
+		text_list = text.split('¤')
+		for i, value in enumerate(text_list):
+			# Every 2 element of the list and if the element is not the first one
+			if i != 0 and i % 2 == 0:
+				# Save the note content
+				save = text_list[i]
+				note_list = update_note_list(note_list, save,int(text_list[i-1]))
+
 	Note = note_list[H]		
 	if len(Note) >= 1:		#(7)
 		note.insert('insert',Note)
@@ -563,6 +540,35 @@ def save_manage():
 
 	write_save_note()	#(3)
 	write_save_day()	#(4)
+# Display sum of activity from actual day
+def day_resume():
+	global activity_list, day
+	cumul = [0] * int(len(activity_list)+1)
+	resume_window = tk.Toplevel()
+	resume_window.title('Daily resume')
+	j = 0
+	while j < 24:		
+		k = 0
+		while k < len(day[j]):
+			if k != 0:
+				base = int(cumul[k-1])
+				base += int(day[j][k])
+				cumul[k-1] = base
+			k += 1			
+
+		j += 1
+	
+	i = 0
+	while i < len(activity_list):
+		tk.Label(resume_window, text=activity_list[i]).grid(row=i, column=0)
+		if i != 0 and i != 5 and i != 6:
+			txt = str(cumul[i])+' min'
+		elif i == 5 or i == 6:
+			txt = str(cumul[i]) + '€'
+		else:
+			txt = cumul[i]
+		tk.Label(resume_window, text=txt).grid(row=i, column=1)
+		i += 1
 # Save note in manage window
 def write_save_note():
 	global H, note, oldNote_list
@@ -687,14 +693,14 @@ def next_day():
 def previous_day():
 	global act_day, relative_day, launched, manage_window
 	# Actual day of the year (Ex: 255/365, 256 = relative_day)
-	# incremented of 1
+	# decremented by 1
 	relative_day = int(act_day[:3]) - 1 
 	relative_day = str(relative_day) + '.txt'
 	# Clear all hour rect for drawing
 	clear_timeline()
-	# Read relative_day file and upsate global day with it
+	# Read relative_day file and update global day with it
 	update_list(relative_day)
-	# Draw the day + 1
+	# Draw the day - 1
 	update_Timeline()
 	# Set the actual day(the day wich is displayed) as 256
 	act_day = relative_day[:3]
@@ -716,13 +722,13 @@ def space_jump(eventorigin):
 	note.insert('insert',E)
 
 
+
 activity_list = ["Cig","Python","Passif","House",\
 				"Friend",'Income',"Outcome","Game",\
 				'Work','Webdev']
 save_file = []
 save_note = []
 make_day()
-
 day_list = get_all_save()
 
 fen = tk.Tk()
