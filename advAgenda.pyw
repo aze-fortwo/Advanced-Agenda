@@ -4,6 +4,7 @@ import time
 import tkinter as tk
 import io
 import os
+import matplotlib.pyplot as plt
 
 """
 	day: List of [24*[len(activity_list)+1]] ,save data of today
@@ -14,7 +15,7 @@ import os
 global day, activity_list, day_list, launched
 
 launched = 0
-
+ 
 # Create list with 24 index with len(activity_list)+1 index
 def make_day():
 	global day, activity_list
@@ -31,12 +32,80 @@ def make_day():
 		for j in activity_list:
 			tab.append(0)
 		day[i] = tab
+# Create empty save file if dayfile is missing
+def check_empty_save(save_file):
+	compt = 1
+	FileName = ""
+	NFileName = ""
+	biggest = 0
+	
+	for file in save_file:
+		if int(file[:3]) > biggest:
+			biggest = int(file[:3])
+
+	while compt < biggest:
+		for file in save_file:
+			if file[3] != '_':
+				if int(file[:3]) != compt :
+					if compt < 100 and compt >=10:
+						FileName = "0"+ str(compt) + '.txt'
+						NFileName = "0"+ str(compt) + '_Note.txt'
+					if compt < 10:
+						FileName = "00" + str(compt) + '.txt'
+						NFileName = "00"+ str(compt) + '_Note.txt'
+					else:
+						FileName = str(compt) + '.txt'
+						NFileName = str(compt) + '_Note.txt'
+
+					if FileName not in os.listdir('.'):
+						with open(FileName,'w+', encoding='utf-8') as sfo:
+							
+							local = time.localtime()
+
+							hour = str(local.tm_hour)
+							minute = str(local.tm_min)
+							seconde = str(local.tm_sec)
+
+							day_time = str(local.tm_mday)
+							month = time.strftime('%B')
+							year = str(local.tm_year)
+
+							current_time = "Automade the " + day_time +'/'+ month +'/'+ year +\
+										'  ' + hour +':'+ minute +':'+ seconde + '\n'
+							
+							sfo.write(current_time)
+							i = 0
+							while i < 24:									
+								j = 0
+								while j < len(activity_list)+1:				
+									if j == 0:
+										text ='\n' + '0' + ' '			
+										sfo.write(text)
+									elif j == len(activity_list)+1:
+										text = '0'
+										sfo.write(text)
+									else:
+										text = '0' + ' '			
+										sfo.write(text)
+
+									j += 1
+								i += 1
+					
+					if NFileName not in os.listdir('.'):			
+						with open(NFileName,'w+', encoding='utf-8') as nfo:
+							i = 0
+							while i < 24:		
+								text = '¤'+str(i)+'¤'
+								nfo.write(text)
+								i += 1
+				compt += 1
 # Read all the save_file and save it in day_list
 def get_all_save():
 	global save_file, save_note, stat_list
-	exclude_file = ['advAgenda.pyw','README.md','.git','.gitignore',' all_save.txt', 'test.py']
+	exclude_file = ['advAgenda.pyw','README.md','.git','.gitignore','all_save.txt', 'test.py','make_stats.pyw','advAgenda.ahk','advAgenda.py','2018']
 
 	save_file = [x for x in os.listdir('.') if x not in exclude_file]
+	check_empty_save(save_file)
 	stat_list = [0]*10
 	width = len(activity_list) + 1
 	height = 24
@@ -68,10 +137,8 @@ def get_all_save():
 					if int(save) < 10:
 						save = '0'+save
 					day_list[z][i][0] = save + '.' + file[:3]
-					# Make cumul_list
-					for j,value in enumerate(line):
-						if j != 0:
-							cumul_list[j] += int(value)
+
+			
 
 			save_files.close()
 
@@ -81,55 +148,8 @@ def get_all_save():
 	stat_list[0] = cumul_list
 	local = time.localtime()
 	day_find = local.tm_yday
-	if launched != 0:
-		percentage_day(day_list,day_find)
 
 	return day_list
-
-def percentage_cumul(cumul_list):
-	percentage_list = [0]*int(len(activity_list)+1)
-	tot = 0
-	exclude = [0,1,6,7]
-
-	for i, value in enumerate(cumul_list) :
-		if i not in exclude:
-			tot += value
-	
-	for i, value in enumerate(cumul_list):
-		if i not in exclude:
-			percentage_list[i] = (cumul_list[i]/tot)*100
-	
-	stat_list[1] = percentage_list
-	return stat_list
-
-def percentage_day(day_list, day_find):
-	day_percentage = [0]*int(len(activity_list)+1)
-	cumul_list = [0]*int(len(activity_list)+1)
-	tot = 0
-	exclude = [0,1,6,7]
-
-	for i, day in enumerate(day_list):
-		for j, hour in enumerate(day_list[i]):
-			if day_find == int(hour[0][3:]):
-				save = i
-				break
-
-	for i, hour in enumerate(day_list[save]):
-		for j, value in enumerate(day_list[save][i]):
-			if j != 0:
-				cumul_list[j] += int(day_list[save][i][j])
-	
-	for i, value in enumerate(cumul_list) :
-		if i not in exclude:
-			tot += value
-
-	for i, value in enumerate(cumul_list):
-		if i not in exclude:
-			day_percentage[i] = (cumul_list[i]/tot)*100
-
-	for i, value in enumerate(day_percentage):
-		if i not in exclude:
-			print(activity_list[i-1],'\t%.2f' % value,'%')
 # Visual Timeline
 def make_TimeLine(fen):
 	global Timeline
@@ -179,7 +199,12 @@ def get_day_txt():
 	local = time.localtime()
 
 	text = ''
-	FileName = str(local.tm_yday) + '.txt'
+	if local.tm_yday < 100:
+		FileName = "0"+ str(local.tm_yday) + '.txt'
+	if local.tm_yday < 10:
+		FileName = "00" + str(local.tm_yday) + '.txt'
+	else:
+		FileName = str(local.tm_yday) + '.txt'
 
 	return FileName
 # Display an indicator of actual time on Timeline
@@ -460,7 +485,7 @@ def manage():
 	"""
 	manage_window = tk.Toplevel()		#(1)
 	manage_window.title('Hour: {}'.format(H))		#(2)
-	panneau = tk.Frame(manage_window, width=165, height = 195).grid(row=0,column=0,columnspan=3,rowspan=7)
+	panneau = tk.Frame(manage_window, width=165, height = 195).grid(row=0,column=0,columnspan=3,rowspan=len(activity_list))
 	manage_window.resizable(False, False)
 	
 	function_list =[]	#(3)
@@ -669,7 +694,13 @@ def next_day():
 	# Actual day of the year (Ex: 255/365, 256 = relative_day)
 	# incremented of 1
 	relative_day = int(act_day[:3]) +1 
-	relative_day = str(relative_day) + '.txt'
+	if int(relative_day) < 100 and int(relative_day) >=10:
+		relative_day = "0"+ str(relative_day) + '.txt'
+	elif int(relative_day) < 10:
+		relative_day = "00" + str(relative_day) + '.txt'
+	else:
+		relative_day = str(relative_day) + '.txt'
+
 	# Clear all hour rect for drawing
 	clear_timeline()
 	# Read relative_day file and upsate global day with it
@@ -695,7 +726,12 @@ def previous_day():
 	# Actual day of the year (Ex: 255/365, 256 = relative_day)
 	# decremented by 1
 	relative_day = int(act_day[:3]) - 1 
-	relative_day = str(relative_day) + '.txt'
+	if int(relative_day) < 100 and int(relative_day) >=10:
+		relative_day = "0"+ str(relative_day) + '.txt'
+	elif int(relative_day) < 10:
+		relative_day = "00" + str(relative_day) + '.txt'
+	else:
+		relative_day = str(relative_day) + '.txt'
 	# Clear all hour rect for drawing
 	clear_timeline()
 	# Read relative_day file and update global day with it
@@ -722,10 +758,9 @@ def space_jump(eventorigin):
 	note.insert('insert',E)
 
 
-
 activity_list = ["Cig","Python","Passif","House",\
 				"Friend",'Income',"Outcome","Game",\
-				'Work','Webdev']
+				'Work','HTML']
 save_file = []
 save_note = []
 make_day()
