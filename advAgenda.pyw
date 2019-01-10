@@ -15,23 +15,6 @@ import matplotlib.pyplot as plt
 global day, activity_list, day_list, launched
 
 launched = 0
- 
-# Create list with 24 index with len(activity_list)+1 index
-def make_day():
-	global day, activity_list
-	# Create an empty day_list without hour index
-	# at the start of the hour line
-	width = len(activity_list) + 1
-	height = 24
-	day = []
-	for i in range(height):
-		day.append([0]*width)
-	# Write hour h at the start of the hour line
-	for i, hour in enumerate(day):
-		tab = [i]
-		for j in activity_list:
-			tab.append(0)
-		day[i] = tab
 # Create empty save file if dayfile is missing
 def check_empty_save(save_file):
 	compt = 1
@@ -98,14 +81,29 @@ def check_empty_save(save_file):
 								text = '¤'+str(i)+'¤'
 								nfo.write(text)
 								i += 1
-				compt += 1
+				compt += 1 
+# Create list with 24 index with len(activity_list)+1 index
+def make_day():
+	global day, activity_list
+	# Create an empty day_list without hour index
+	# at the start of the hour line
+	width = len(activity_list) + 1
+	height = 24
+	day = []
+	for i in range(height):
+		day.append([0]*width)
+	# Write hour h at the start of the hour line
+	for i, hour in enumerate(day):
+		tab = [i]
+		for j in activity_list:
+			tab.append(0)
+		day[i] = tab
 # Read all the save_file and save it in day_list
 def get_all_save():
 	global save_file, save_note, stat_list
 	exclude_file = ['advAgenda.pyw','README.md','.git','.gitignore','all_save.txt', 'test.py','make_stats.pyw','advAgenda.ahk','advAgenda.py','2018']
 
 	save_file = [x for x in os.listdir('.') if x not in exclude_file]
-	check_empty_save(save_file)
 	stat_list = [0]*10
 	width = len(activity_list) + 1
 	height = 24
@@ -199,9 +197,9 @@ def get_day_txt():
 	local = time.localtime()
 
 	text = ''
-	if local.tm_yday < 100:
+	if local.tm_yday < 100 and local.tm_yday >= 10:
 		FileName = "0"+ str(local.tm_yday) + '.txt'
-	if local.tm_yday < 10:
+	elif local.tm_yday < 10:
 		FileName = "00" + str(local.tm_yday) + '.txt'
 	else:
 		FileName = str(local.tm_yday) + '.txt'
@@ -765,6 +763,8 @@ save_file = []
 save_note = []
 make_day()
 day_list = get_all_save()
+check_empty_save(save_file)
+
 
 fen = tk.Tk()
 fen.resizable(False, False)
