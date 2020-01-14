@@ -1,7 +1,7 @@
 # Advanced-Agenda
 A timeline visualisation of your day with python & Tkinter
 
-====================================REQUIREMENT==================================
+====================================REQUIREMENT=================================
 You need  Python 3.7.4  and matplotlib for making it work.
 
 Here is the link for Python 3.8.1 https://www.python.org/downloads/
